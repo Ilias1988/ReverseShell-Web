@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![GitHub Pages](https://img.shields.io/badge/Demo-Live-brightgreen?style=for-the-badge&logo=github)](https://Ilias1988.github.io/ReverseShell-Web)
 
-A modern, browser-based shell payload generator built with **React**, **Vite**, and **Tailwind CSS**. Supports **Reverse Shells**, **Bind Shells**, and **MSFVenom** command generation — all from the browser. This is the web port of the [Python Reverse Shell Generator](https://github.com/Ilias1988/RevesrseShell-Generator) desktop application, designed for penetration testers, red teamers, and CTF players.
+A modern, browser-based shell payload generator built with **React**, **Vite**, and **Tailwind CSS**. Supports **Reverse Shells**, **Bind Shells**, and **MSFVenom** command generation — all from the browser. This is the web port of the [Python Reverse Shell Generator](https://github.com/Ilias1988/ReverseShell-Generator) desktop application, designed for penetration testers, red teamers, and CTF players.
 
 ---
 
