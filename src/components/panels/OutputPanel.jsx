@@ -1,4 +1,4 @@
-import { Headphones, Zap } from 'lucide-react';
+import { Headphones, Zap, TerminalSquare } from 'lucide-react';
 import CopyButton from '../ui/CopyButton';
 
 /**
@@ -9,11 +9,16 @@ export default function OutputPanel({
   generatedPayload,
   selectedPayload,
   encoding,
+  mode,
+  shellBinary,
   onCopyListener,
   onCopyPayload,
 }) {
   const lineCount = generatedPayload ? generatedPayload.split('\n').length : 0;
   const charCount = generatedPayload ? generatedPayload.length : 0;
+
+  const modeLabel = mode === 'reverse' ? 'Reverse' : 'Bind';
+  const listenerLabel = mode === 'reverse' ? 'Listener Command' : 'Connect Command';
 
   return (
     <div className="panel flex flex-col h-full overflow-hidden">
@@ -22,12 +27,12 @@ export default function OutputPanel({
       <div className="p-5 pb-0">
         <div className="section-label mb-3">
           <Headphones size={18} className="text-purple-400" />
-          Listener Command
+          {listenerLabel}
         </div>
 
         <div className="
-          flex items-center gap-3 
-          bg-dark-900 border border-dark-600 rounded-lg 
+          flex items-center gap-3
+          bg-dark-900 border border-dark-600 rounded-lg
           p-3
         ">
           <code className="flex-1 text-sm font-mono text-cyan-400 truncate select-all">
@@ -48,13 +53,37 @@ export default function OutputPanel({
             <Zap size={18} className="text-yellow-400" />
             Generated Payload
           </div>
-          
+
           {/* Payload info badges */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Mode badge */}
+            <span className={`
+              px-2 py-0.5 rounded-md text-xs font-medium border
+              ${mode === 'reverse'
+                ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+              }
+            `}>
+              {modeLabel}
+            </span>
+
+            {/* Shell badge */}
+            {shellBinary && (
+              <span className="
+                px-2 py-0.5 rounded-md text-xs font-medium
+                bg-teal-500/10 text-teal-400 border border-teal-500/20
+                flex items-center gap-1
+              ">
+                <TerminalSquare size={10} />
+                {shellBinary}
+              </span>
+            )}
+
             {selectedPayload && (
               <span className="
                 px-2 py-0.5 rounded-md text-xs font-medium
                 bg-shell-blue/10 text-shell-blue border border-shell-blue/20
+                max-w-36 truncate
               ">
                 {selectedPayload}
               </span>

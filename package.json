@@ -2,7 +2,7 @@
   "name": "web-revshell",
   "private": true,
   "version": "1.0.0",
-  "homepage": "https://ilias1988.github.io/web-revshell",
+  "homepage": "https://Ilias1988.github.io/ReverseShell-Web",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -r https://github.com/Ilias1988/ReverseShell-Web.git"
   },
   "dependencies": {
     "lucide-react": "^0.312.0",

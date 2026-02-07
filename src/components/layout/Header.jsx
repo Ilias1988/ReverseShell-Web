@@ -55,7 +55,7 @@ export default function Header() {
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
         <a
-          href="https://github.com/Ilias1988/web-revshell"
+          href="https://github.com/Ilias1988/ReverseShell-Web"
           target="_blank"
           rel="noopener noreferrer"
           className="
