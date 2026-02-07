@@ -355,7 +355,7 @@ Contributions are welcome! Feel free to:
 
 ## 🙏 Acknowledgments
 
-- Web port of [Python RevShell Generator](https://github.com/Ilias1988/RevesrseShell-Generator)
+- Web port of [Python RevShell Generator](https://github.com/Ilias1988/ReverseShell-Generator)
 - Inspired by [revshells.com](https://revshells.com)
 - Built with [React](https://reactjs.org/), [Vite](https://vitejs.dev/), and [Tailwind CSS](https://tailwindcss.com/)
 - Icons by [Lucide](https://lucide.dev/)
