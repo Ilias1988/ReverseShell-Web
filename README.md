@@ -16,7 +16,7 @@ A modern, browser-based reverse shell payload generator built with **React**, **
 
 ## 🌐 Live Demo
 
-👉 **[https://ilias1988.github.io/web-revshell](https://ilias1988.github.io/web-revshell)**
+👉 **[https://ilias1988.github.io/ReverseShell-Web](https://ilias1988.github.io/ReverseShell-Web)**
 
 ---
 
@@ -69,7 +69,7 @@ A modern, browser-based reverse shell payload generator built with **React**, **
 
 ```bash
 # Clone the repository
-git clone https://github.com/Ilias1988/web-revshell.git
+git clone https://github.com/Ilias1988/ReverseShell-Web.git
 
 # Navigate to the project directory
 cd web-revshell
