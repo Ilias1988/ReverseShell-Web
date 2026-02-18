@@ -1,0 +1,8 @@
+# robots.txt for Reverse Shell Generator
+# https://ilias1988.github.io/ReverseShell-Web/
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://ilias1988.github.io/ReverseShell-Web/sitemap.xml
