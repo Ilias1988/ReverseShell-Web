@@ -7,6 +7,7 @@ import SettingsPanel from './components/panels/SettingsPanel';
 import OutputPanel from './components/panels/OutputPanel';
 import MsfvenomPanel from './components/panels/MsfvenomPanel';
 import Toast from './components/ui/Toast';
+import SEOHead from './components/seo/SEOHead';
 
 const MODE_TABS = [
   { id: 'reverse', label: 'Reverse', icon: ArrowDownLeft, color: 'shell-blue' },
@@ -36,6 +37,9 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-dark-950 text-gray-100 overflow-hidden">
+      {/* Dynamic SEO — updates <title>, <meta>, and JSON-LD per mode */}
+      <SEOHead mode={shell.mode} />
+
       {/* Toast Notification */}
       <Toast
         show={toast.show}
