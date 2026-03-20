@@ -40,10 +40,70 @@ const SEO_DATA = {
 
 const BASE_URL = 'https://shellgenerator.dev'
 
+/* ── FAQ Schema — targets Google Rich Snippets ─────────────── */
+const FAQ_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What is a reverse shell?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'A reverse shell is a type of remote shell where the target machine initiates an outbound connection back to the attacker\'s listener. This technique is commonly used in penetration testing because it bypasses inbound firewall rules and NAT configurations that block incoming connections. The attacker sets up a listener (e.g., nc -lvnp 4444) and the target runs a payload that connects back to it.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do I listen for a reverse shell connection?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'To listen for a reverse shell connection, use Netcat with the command: nc -lvnp <PORT>. For example, "nc -lvnp 4444" will open port 4444 and wait for an incoming connection. Make sure the port is not blocked by your firewall and that the target\'s payload is configured to connect to your IP and port.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the difference between a reverse shell and a bind shell?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'In a reverse shell, the target connects back to the attacker\'s machine, making it ideal for bypassing firewalls. In a bind shell, the target opens a port and listens for the attacker to connect. Reverse shells are more commonly used because most networks allow outbound connections but restrict inbound ones.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do I stabilize a reverse shell?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'To stabilize a reverse shell: 1) Run python3 -c \'import pty; pty.spawn("/bin/bash")\' to spawn a proper TTY. 2) Press Ctrl+Z to background the shell. 3) Run "stty raw -echo; fg" in your terminal. 4) Export the terminal type with "export TERM=xterm". This gives you a fully interactive shell with tab completion and signal handling.',
+      },
+    },
+  ],
+}
+
+/* ── Breadcrumb Schema — improves SERP appearance ──────────── */
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: `${BASE_URL}/`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Reverse Shell Generator',
+      item: `${BASE_URL}/`,
+    },
+  ],
+}
+
 export default function SEOHead({ mode = 'reverse' }) {
   const seo = SEO_DATA[mode] || SEO_DATA.reverse
 
-  const jsonLd = {
+  const webAppSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: seo.jsonLdName,
@@ -89,9 +149,19 @@ export default function SEOHead({ mode = 'reverse' }) {
       <meta name="twitter:title" content={seo.title} />
       <meta name="twitter:description" content={seo.description} />
 
-      {/* Dynamic JSON-LD Structured Data */}
+      {/* Dynamic JSON-LD — WebApplication Schema */}
       <script type="application/ld+json">
-        {JSON.stringify(jsonLd)}
+        {JSON.stringify(webAppSchema)}
+      </script>
+
+      {/* FAQ Schema — Google Rich Snippets */}
+      <script type="application/ld+json">
+        {JSON.stringify(FAQ_SCHEMA)}
+      </script>
+
+      {/* Breadcrumb Schema — SERP enhancement */}
+      <script type="application/ld+json">
+        {JSON.stringify(BREADCRUMB_SCHEMA)}
       </script>
     </Helmet>
   )

@@ -8,6 +8,7 @@ import OutputPanel from './components/panels/OutputPanel';
 import MsfvenomPanel from './components/panels/MsfvenomPanel';
 import Toast from './components/ui/Toast';
 import SEOHead from './components/seo/SEOHead';
+import SEOContent from './components/seo/SEOContent';
 
 const MODE_TABS = [
   { id: 'reverse', label: 'Reverse', icon: ArrowDownLeft, color: 'shell-blue' },
@@ -36,7 +37,7 @@ export default function App() {
   const isMsfvenom = shell.mode === 'msfvenom';
 
   return (
-    <div className="h-screen flex flex-col bg-dark-950 text-gray-100 overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-dark-950 text-gray-100">
       {/* Dynamic SEO — updates <title>, <meta>, and JSON-LD per mode */}
       <SEOHead mode={shell.mode} />
 
@@ -81,8 +82,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col lg:flex-row gap-4 px-5 pb-2 min-h-0 overflow-hidden">
+      {/* Main Content — tool area occupies the viewport */}
+      <main className="h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-4 px-5 pb-2 min-h-0 overflow-hidden">
         {isMsfvenom ? (
           /* ════ MSFVenom Mode ════ */
           <MsfvenomPanel
@@ -145,6 +146,9 @@ export default function App() {
           </>
         )}
       </main>
+
+      {/* Educational SEO Content — visible below the tool on scroll */}
+      <SEOContent />
 
       {/* Footer */}
       <Footer statusMessage={shell.statusMessage} />

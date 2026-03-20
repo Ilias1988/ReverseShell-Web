@@ -52,5 +52,25 @@
   <body class="bg-dark-950 text-gray-100 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Fallback SEO content for crawlers that don't execute JavaScript -->
+    <noscript>
+      <div style="max-width:800px;margin:40px auto;padding:20px;color:#c9d1d9;font-family:system-ui,sans-serif;">
+        <h1>Reverse Shell Generator — Online Payload Generator for Penetration Testing</h1>
+        <p>Free online <strong>Reverse Shell Generator</strong> for penetration testers and ethical hackers. Generate reverse shell, bind shell, and MSFVenom payloads for Linux and Windows in seconds.</p>
+        <h2>Mastering Reverse Shells &amp; Payloads</h2>
+        <p>A <strong>reverse shell</strong> is a remote access technique widely used in <strong>penetration testing</strong> and <strong>offensive security</strong>. The target machine initiates an outbound connection back to the attacker's listener, bypassing inbound firewall rules and NAT configurations.</p>
+        <h3>Types of Shells</h3>
+        <ul>
+          <li><strong>Reverse Shells</strong> — Target connects back to the attacker's listener (e.g., nc -lvnp 4444). Most common in real-world engagements.</li>
+          <li><strong>Bind Shells</strong> — Target opens a port and waits for the attacker. Useful when outbound traffic is restricted.</li>
+          <li><strong>MSFVenom Payloads</strong> — Metasploit's payload generation engine for encoded, staged, or stageless payloads in ELF, EXE, and raw formats.</li>
+        </ul>
+        <h3>Essential One-Liners for Pentesters</h3>
+        <p>Bash, Python, and PowerShell one-liners establish interactive sessions without writing files to disk, helping evade EDR solutions. Essential for initial access, lateral movement, and CTF competitions.</p>
+        <p><strong>Pro Tip:</strong> Stabilize your shell with: <code>python3 -c 'import pty; pty.spawn("/bin/bash")'</code></p>
+        <p>Supports: Bash, Python, PHP, PowerShell, Netcat, Perl, Ruby, Golang, Java, C, and more.</p>
+      </div>
+    </noscript>
   </body>
 </html>
