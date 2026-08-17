@@ -1,7 +1,7 @@
 # 🐚 Web Reverse Shell Generator
 
 [![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![GitHub Pages](https://img.shields.io/badge/Demo-Live-brightgreen?style=for-the-badge&logo=github)](https://Ilias1988.github.io/ReverseShell-Web)
@@ -29,6 +29,8 @@ A modern, browser-based shell payload generator built with **React**, **Vite**, 
 | 📚 **180+ Payloads** | 90+ reverse, 32 bind, 60+ MSFVenom payload options |
 | 🐚 **Shell Selector** | Choose shell binary (sh, bash, zsh, dash, ash, ksh, cmd.exe, powershell.exe, etc.) |
 | 💀 **MSFVenom Generator** | Full command builder with payloads, formats, encoders, arch, platform, bad chars |
+| ✨ **Smart Payload Advisor** | Rank payloads by transport, family, and binaries known to exist on the target |
+| 📖 **Payload Explanation** | Explain direction, requirements, placeholders, compatibility notes, and the guided workflow |
 | 🏷️ **Category Filter** | Filter payloads by language (Bash, Python, PHP, Java, PowerShell, C#, etc.) |
 | ⚡ **Real-Time Generation** | Payload and listener update **instantly** as you type IP/Port |
 | 🔐 **Smart Encoding** | Supports **Base64**, **URL Encode**, and **Double URL Encode** |
@@ -39,7 +41,41 @@ A modern, browser-based shell payload generator built with **React**, **Vite**, 
 | 🖥️ **Fullscreen Mode** | Press `F11` for distraction-free fullscreen view |
 | 📱 **Responsive** | Works on desktop, tablet, and mobile devices |
 | 🔔 **Toast Notifications** | Animated "Copied!" notifications |
+| 🛡️ **Input Validation** | Validates hosts, ports, MSFVenom options, bad characters, and output filenames |
+| ✅ **Automated Verification** | Lint, unit tests, production build, prerender, and desktop/mobile browser checks |
 | 🚀 **GitHub Pages Ready** | One-command deployment to GitHub Pages |
+
+---
+
+## ✅ Recent Reliability, Security & UX Improvements
+
+The latest maintenance pass focused on making the application reliable in production, safer when building commands, and easier to use across devices.
+
+| Area | Changes |
+|------|---------|
+| **Production rendering** | Fixed the prerender/React mounting conflict that could leave tabs, buttons, and inputs unresponsive after a production build |
+| **Mobile layout** | Fixed collapsed settings/output panels and restored normal page scrolling; the generated-payload panel now keeps a usable minimum height |
+| **PowerShell payloads** | Fixed `{ip}` and `{port}` substitution inside UTF-16LE PowerShell `-EncodedCommand` payloads before re-encoding |
+| **MSFVenom generator** | Added editable LHOST/RHOST and LPORT controls, automatic valid payload selection, format/platform/architecture/encoder compatibility checks, and safer argument quoting |
+| **Payload catalog** | Removed invalid webshell-style generator entries from selectable command payloads and corrected duplicate/incorrect MSFVenom entries |
+| **Shell selection** | Shell overrides are applied only to compatible templates; fixed payloads now display their actual required interpreter instead of a misleading disabled selection |
+| **Validation & safety** | Added host, port, integer-range, bad-character, and output-filename validation; invalid values no longer produce commands |
+| **Accessibility** | Added labels, ARIA tab/listbox semantics, pressed/expanded states, keyboard handling, and clearer validation feedback |
+| **React lifecycle** | Cleaned up timers and event listeners and removed state-sync effects that could cause stale selections or unnecessary renders |
+| **Prerender hardening** | Bound the temporary server to `127.0.0.1`, added path confinement and malformed-URL handling, randomized its port, and guaranteed browser/server cleanup |
+| **Browser compatibility** | Build scripts can use Puppeteer's browser or automatically fall back to an installed Chrome, Edge, or Chromium executable |
+| **Toolchain security** | Upgraded Vite, Puppeteer, PostCSS, Tailwind CSS, and related build dependencies; `npm audit` reports **0 known vulnerabilities** |
+
+### Verification result
+
+The repaired production build has been checked with:
+
+- ESLint with zero errors or warnings
+- 16/16 passing unit tests
+- Successful Vite production build and static prerender
+- Successful desktop interaction test for MSFVenom LHOST updates
+- Successful mobile layout/scrolling test at a 390 × 844 viewport
+- No browser runtime errors during the final end-to-end run
 
 ---
 
@@ -83,7 +119,7 @@ Dynamically swap the shell binary used in every payload:
 | `sh` (no path) | |
 | `bash` (no path) | |
 
-> **How it works:** When you select a different shell, all occurrences of `/bin/sh` and `/bin/bash` (or `cmd.exe` on Windows) in the generated payload are automatically replaced with your selection.
+> **How it works:** When the selected payload supports shell substitution, occurrences of `/bin/sh`, `/bin/bash`, or `cmd.exe` are safely replaced with your selection. The selector is disabled for payloads that require a specific interpreter or cannot be rewritten reliably.
 
 ---
 
@@ -129,7 +165,7 @@ Dynamically swap the shell binary used in every payload:
 ## 📦 Installation & Setup
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) `^20.19.0` or `>=22.12.0`
 - npm (comes with Node.js)
 
 ### Quick Start
@@ -160,6 +196,23 @@ The optimized build will be in the `dist/` directory.
 
 ---
 
+## 🧪 Testing & Verification
+
+```bash
+# Static analysis
+npm run lint
+
+# Core payload-generation and validation tests
+npm test
+
+# Complete check: lint + tests + production build + prerender + browser E2E
+npm run verify
+```
+
+`npm run verify` uses a headless browser to confirm that the production build remains interactive on desktop and that the generated-payload panel is visible and scrollable on mobile.
+
+---
+
 ## 🚀 Deploy to GitHub Pages
 
 ```bash
@@ -184,6 +237,27 @@ This will build the project and push the `dist/` folder to the `gh-pages` branch
 8. **Select encoding** (optional): None, Base64, URL, or Double URL
 9. **Copy the Listener/Connect command** — click Copy
 10. **Copy the Payload** — click Copy Payload
+
+### Smart Payload Advisor
+
+1. Choose **Reverse** or **Bind** and the target operating system
+2. Click **Smart Payload Advisor** above the payload filters
+3. Select TCP/UDP and an optional payload family
+4. Mark only binaries or interpreters you know are available on the target
+5. Review the `Compatible`, `Check requirements`, and `Unavailable` explanations
+6. Click **Use payload** to apply a recommendation without changing the IP, port, encoding, or OS
+
+Leaving all target capabilities unselected keeps every matching payload visible and marks its requirements as unconfirmed.
+
+### Payload Explanation
+
+1. Select any reverse or bind payload
+2. Click **Explain selected payload**
+3. Review connection direction, interpreter, required binaries, and placeholders
+4. Check compatibility warnings before using the command in an authorized lab
+5. Follow the listener/payload workflow and optional Linux TTY-stabilization notes
+
+Explanations are generated entirely from trusted local metadata and never execute or upload a payload.
 
 ### MSFVenom Generator
 1. Switch to the **MSFVenom** tab
@@ -213,17 +287,32 @@ This will build the project and push the `dist/` folder to the `gh-pages` branch
 
 ```
 web-revshell/
+├── eslint.config.js                    # ESLint configuration
 ├── index.html                          # HTML entry point
 ├── package.json                        # Dependencies & scripts
 ├── vite.config.js                      # Vite configuration
 ├── tailwind.config.js                  # Tailwind CSS configuration
 ├── postcss.config.js                   # PostCSS configuration
+├── scripts/
+│   ├── browser.js                      # Installed-browser discovery for Puppeteer
+│   ├── prerender.js                    # Hardened static prerender workflow
+│   └── verify-build.js                 # Desktop/mobile production browser checks
+├── tests/
+│   └── core.test.js                    # Payload, metadata, Advisor, validation, and MSFVenom tests
 ├── public/
 │   └── favicon.svg                     # App favicon
 ├── src/
 │   ├── main.jsx                        # React entry point
 │   ├── App.jsx                         # Main app layout + mode tabs
 │   ├── index.css                       # Tailwind imports + custom styles
+│   ├── features/
+│   │   ├── payloadAdvisor/
+│   │       ├── advisorEngine.js        # Deterministic compatibility scoring and ranking
+│   │       ├── payloadMetadata.js      # Validated metadata for all selectable payloads
+│   │       └── PayloadAdvisor.jsx      # Accessible guided-selection dialog
+│   │   └── payloadExplanation/
+│   │       ├── explanationEngine.js    # Structured local payload explanations
+│   │       └── PayloadExplanation.jsx  # Accessible explanation and workflow dialog
 │   ├── data/
 │   │   ├── payloadsLinux.js            # 60+ Linux reverse shell payloads
 │   │   ├── payloadsWindows.js          # 30+ Windows reverse shell payloads
@@ -232,7 +321,9 @@ web-revshell/
 │   │   ├── shells.js                   # Shell binary options (sh, bash, zsh, etc.)
 │   │   └── msfvenomData.js            # MSFVenom payloads, formats, encoders, generator
 │   ├── utils/
-│   │   └── encoding.js                 # Base64, URL, Double URL encoding
+│   │   ├── encoding.js                 # Encoding and PowerShell placeholder injection
+│   │   ├── shells.js                   # Safe shell-override compatibility logic
+│   │   └── validation.js               # Host, port, option, and filename validation
 │   ├── hooks/
 │   │   └── useRevShell.js              # Core logic (state, generation, encoding, shell, categories)
 │   └── components/
@@ -282,7 +373,7 @@ const BIND_LINUX_PAYLOADS = {
 | Technology | Purpose |
 |-----------|---------|
 | [React 18](https://reactjs.org/) | UI framework |
-| [Vite 5](https://vitejs.dev/) | Build tool & dev server |
+| [Vite 8](https://vite.dev/) | Build tool & dev server |
 | [Tailwind CSS 3](https://tailwindcss.com/) | Utility-first CSS framework |
 | [Lucide React](https://lucide.dev/) | Beautiful SVG icons |
 | [gh-pages](https://github.com/tschaub/gh-pages) | GitHub Pages deployment |

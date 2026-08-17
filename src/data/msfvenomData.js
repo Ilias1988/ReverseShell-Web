@@ -1,3 +1,5 @@
+import { quoteShellArg } from '../utils/validation.js'
+
 // MSFVenom payload data for the MSFVenom Generator tab
 // Organized by categories for easy selection
 
@@ -13,7 +15,7 @@ export const MSFVENOM_PAYLOADS = {
       'linux/x64/meterpreter/reverse_tcp',
       'linux/x64/shell/bind_tcp',
       'linux/x64/meterpreter/bind_tcp',
-      'linux/x64/meterpreter_reverse_https',
+      'linux/x64/meterpreter/reverse_https',
     ],
     'Stageless': [
       'linux/x86/shell_reverse_tcp',
@@ -191,6 +193,73 @@ export const MSFVENOM_PLATFORMS = [
   { value: 'python', label: 'Python' },
 ];
 
+const NATIVE_FORMATS = new Set([
+  'exe', 'exe-small', 'exe-only', 'dll', 'msi',
+  'elf', 'elf-so', 'macho', 'apk',
+  'asp', 'aspx', 'aspx-exe', 'jsp', 'war', 'php', 'phtml',
+  'python', 'py', 'bash', 'sh', 'powershell', 'ps1', 'hta-psh',
+  'vba', 'vba-exe', 'vba-psh', 'vbs',
+]);
+
+const PLATFORM_FORMATS = {
+  windows: new Set([
+    'exe', 'exe-small', 'exe-only', 'dll', 'msi',
+    'asp', 'aspx', 'aspx-exe', 'powershell', 'ps1', 'hta-psh',
+    'vba', 'vba-exe', 'vba-psh', 'vbs',
+  ]),
+  linux: new Set(['elf', 'elf-so', 'bash', 'sh']),
+  osx: new Set(['macho']),
+  android: new Set(['apk']),
+  php: new Set(['php', 'phtml']),
+  java: new Set(['jsp', 'war']),
+  python: new Set(['python', 'py']),
+};
+
+export function inferPayloadPlatform(payload = '') {
+  const prefix = payload.split('/')[0];
+  return prefix === 'osx' ? 'osx' : prefix;
+}
+
+export function inferPayloadArch(payload = '') {
+  if (payload.includes('/x64/')) return 'x64';
+  if (payload.includes('/x86/')) return 'x86';
+  return '';
+}
+
+export function isFormatCompatible(payload, format) {
+  if (!format || !NATIVE_FORMATS.has(format)) return true;
+  const platform = inferPayloadPlatform(payload);
+  return PLATFORM_FORMATS[platform]?.has(format) ?? true;
+}
+
+export function getMsfvenomCompatibilityErrors({
+  payload,
+  format,
+  encoder,
+  arch,
+  platform,
+}) {
+  const errors = {};
+  const inferredPlatform = inferPayloadPlatform(payload);
+  const inferredArch = inferPayloadArch(payload);
+  const encoderArch = encoder?.match(/^(x86|x64)\//)?.[1] || '';
+
+  if (!isFormatCompatible(payload, format)) {
+    errors.format = `${format} is not compatible with ${inferredPlatform || 'this'} payload`;
+  }
+  if (arch && inferredArch && arch !== inferredArch) {
+    errors.arch = `Payload architecture is ${inferredArch}`;
+  }
+  if (platform && inferredPlatform && platform !== inferredPlatform) {
+    errors.platform = `Payload platform is ${inferredPlatform}`;
+  }
+  if (encoderArch && inferredArch && encoderArch !== inferredArch) {
+    errors.encoder = `${encoder} cannot encode a ${inferredArch} payload`;
+  }
+
+  return errors;
+}
+
 /**
  * Generate an msfvenom command string from the given options
  */
@@ -214,14 +283,14 @@ export function generateMsfvenomCommand({
 
   // LHOST / LPORT (detect direction from payload name)
   if (payload.includes('reverse') || payload.includes('meterpreter_reverse')) {
-    parts.push(`LHOST=${ip || '10.10.10.10'}`);
-    parts.push(`LPORT=${port || '4444'}`);
+    parts.push(`LHOST=${quoteShellArg(ip || '10.10.10.10')}`);
+    parts.push(`LPORT=${quoteShellArg(port || '4444')}`);
   } else if (payload.includes('bind')) {
-    parts.push(`RHOST=${ip || '10.10.10.10'}`);
-    parts.push(`LPORT=${port || '4444'}`);
+    parts.push(`RHOST=${quoteShellArg(ip || '10.10.10.10')}`);
+    parts.push(`LPORT=${quoteShellArg(port || '4444')}`);
   } else {
-    parts.push(`LHOST=${ip || '10.10.10.10'}`);
-    parts.push(`LPORT=${port || '4444'}`);
+    parts.push(`LHOST=${quoteShellArg(ip || '10.10.10.10')}`);
+    parts.push(`LPORT=${quoteShellArg(port || '4444')}`);
   }
 
   // Platform
@@ -251,7 +320,7 @@ export function generateMsfvenomCommand({
 
   // Bad characters
   if (badChars && badChars.trim()) {
-    parts.push(`-b '${badChars.trim()}'`);
+    parts.push(`-b ${quoteShellArg(badChars.trim())}`);
   }
 
   // Format
@@ -259,7 +328,7 @@ export function generateMsfvenomCommand({
 
   // Output file
   if (outputFile && outputFile.trim()) {
-    parts.push(`-o ${outputFile.trim()}`);
+    parts.push(`-o ${quoteShellArg(outputFile.trim())}`);
   }
 
   return parts.join(' \\\n  ');
@@ -271,9 +340,6 @@ export function generateMsfvenomCommand({
 export function getMsfvenomListener({ payload, ip, port }) {
   const isReverse = payload.includes('reverse');
   const isMeterpreter = payload.includes('meterpreter');
-  const isHttp = payload.includes('http');
-  const isHttps = payload.includes('https');
-
   if (isMeterpreter) {
     let handler = 'exploit/multi/handler';
     let lines = [

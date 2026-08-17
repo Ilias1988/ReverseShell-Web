@@ -36,14 +36,14 @@ export default function Header() {
   }, [toggleFullscreen]);
 
   return (
-    <header className="flex items-center justify-between px-6 py-4">
+    <header className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       {/* Left: Logo & Title */}
-      <div className="flex items-center gap-3">
+      <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto">
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-shell-blue/10 border border-shell-blue/20">
           <Terminal size={22} className="text-shell-blue" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-100 tracking-tight">
+        <div className="min-w-0">
+          <h1 className="whitespace-nowrap text-lg font-bold text-gray-100 tracking-tight sm:text-xl">
             Reverse Shell Generator
           </h1>
           <p className="text-xs text-dark-400 font-medium">
@@ -53,7 +53,7 @@ export default function Header() {
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         {/* Website */}
         <a
           href="https://ilias1988.me/"
@@ -66,6 +66,7 @@ export default function Header() {
             transition-all duration-200
           "
           title="Personal Website"
+          aria-label="Personal Website"
         >
           <Globe size={16} />
           <span className="hidden sm:inline">Website</span>
@@ -83,6 +84,7 @@ export default function Header() {
             transition-all duration-200
           "
           title="GitHub Repository"
+          aria-label="GitHub Repository"
         >
           <Github size={16} />
           <span className="hidden sm:inline">GitHub</span>
@@ -100,6 +102,7 @@ export default function Header() {
             transition-all duration-200
           "
           title="LinkedIn Profile"
+          aria-label="LinkedIn Profile"
         >
           <Linkedin size={16} />
           <span className="hidden sm:inline">LinkedIn</span>
@@ -115,6 +118,7 @@ export default function Header() {
             transition-all duration-200
           "
           title="Toggle Fullscreen (F11)"
+          aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
         >
           {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           <span className="hidden sm:inline">

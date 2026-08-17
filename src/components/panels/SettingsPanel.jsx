@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Plug, Monitor, Target, Lock, Search, ChevronDown, X,
-  TerminalSquare, Tag
+  TerminalSquare, Tag, Sparkles, BookOpen
 } from 'lucide-react';
+import PayloadAdvisor from '../../features/payloadAdvisor/PayloadAdvisor';
+import PayloadExplanation from '../../features/payloadExplanation/PayloadExplanation';
 
 /**
  * Left panel: Connection settings, OS, Shell, Category filter, Payload dropdown, Encoding
@@ -29,9 +31,19 @@ export default function SettingsPanel({
   handleCategoryChange,
   availableCategories,
   mode,
+  connectionErrors,
+  shellOverrideSupported,
+  fixedInterpreter,
+  payloadCatalog,
+  selectedPayloadMetadata,
+  listenerCommand,
+  generatedPayload,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [explanationOpen, setExplanationOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
   const searchRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -55,7 +67,7 @@ export default function SettingsPanel({
   const encodingOptions = ['None', 'Base64', 'URL', 'Double URL'];
 
   return (
-    <div className="panel p-5 flex flex-col gap-1 h-full overflow-y-auto">
+    <div className="panel p-5 flex flex-col gap-1 lg:h-full lg:overflow-y-auto">
 
       {/* ── Connection Settings ─────────────────── */}
       <div className="section-label mb-3">
@@ -64,30 +76,50 @@ export default function SettingsPanel({
       </div>
 
       {/* IP Address */}
-      <label className="text-xs font-medium text-dark-400 uppercase tracking-wider">
+      <label htmlFor="connection-host" className="text-xs font-medium text-dark-400 uppercase tracking-wider">
         {mode === 'bind' ? 'Target IP (RHOST)' : 'IP Address (LHOST)'}
       </label>
       <input
         type="text"
+        id="connection-host"
         value={ip}
         onChange={(e) => setIp(e.target.value)}
         placeholder="e.g., 10.10.10.10"
-        className="input-field mb-3"
+        className={`input-field ${connectionErrors?.ip ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : ''}`}
         spellCheck={false}
+        autoComplete="off"
+        aria-invalid={Boolean(connectionErrors?.ip)}
+        aria-describedby={connectionErrors?.ip ? 'connection-host-error' : undefined}
       />
+      <div className="min-h-5 mb-1">
+        {connectionErrors?.ip && (
+          <p id="connection-host-error" className="text-xs text-red-400">{connectionErrors.ip}</p>
+        )}
+      </div>
 
       {/* Port */}
-      <label className="text-xs font-medium text-dark-400 uppercase tracking-wider">
+      <label htmlFor="connection-port" className="text-xs font-medium text-dark-400 uppercase tracking-wider">
         Port (LPORT)
       </label>
       <input
-        type="text"
+        type="number"
+        id="connection-port"
+        min="1"
+        max="65535"
         value={port}
         onChange={(e) => setPort(e.target.value)}
         placeholder="e.g., 4444"
-        className="input-field mb-2"
+        className={`input-field ${connectionErrors?.port ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : ''}`}
         spellCheck={false}
+        inputMode="numeric"
+        aria-invalid={Boolean(connectionErrors?.port)}
+        aria-describedby={connectionErrors?.port ? 'connection-port-error' : undefined}
       />
+      <div className="min-h-5">
+        {connectionErrors?.port && (
+          <p id="connection-port-error" className="text-xs text-red-400">{connectionErrors.port}</p>
+        )}
+      </div>
 
       <div className="separator" />
 
@@ -102,6 +134,7 @@ export default function SettingsPanel({
           <button
             key={option}
             onClick={() => handleOsChange(option)}
+            aria-pressed={os === option}
             className={`
               flex-1 py-2.5 px-4 rounded-lg text-sm font-medium
               transition-all duration-200 border
@@ -119,20 +152,43 @@ export default function SettingsPanel({
       <div className="separator" />
 
       {/* ── Shell Selector ──────────────────────── */}
-      <div className="section-label mb-3">
+      <label
+        id="shell-selector-label"
+        htmlFor={shellOverrideSupported ? 'shell-selector' : undefined}
+        className="section-label mb-3"
+      >
         <TerminalSquare size={18} className="text-teal-400" />
         Shell
-      </div>
+      </label>
 
-      <select
-        value={shell}
-        onChange={(e) => handleShellChange(e.target.value)}
-        className="input-field mb-2"
-      >
-        {availableShells.map((s) => (
-          <option key={s.value} value={s.value}>{s.label} ({s.value})</option>
-        ))}
-      </select>
+      {shellOverrideSupported ? (
+        <select
+          id="shell-selector"
+          value={shell}
+          onChange={(e) => handleShellChange(e.target.value)}
+          className="input-field mb-2"
+        >
+          {availableShells.map((s) => (
+            <option key={s.value} value={s.value}>{s.label} ({s.value})</option>
+          ))}
+        </select>
+      ) : (
+        <div
+          id="shell-selector"
+          className="input-field mb-2 flex cursor-default items-center justify-between"
+          aria-labelledby="shell-selector-label"
+        >
+          <span>{fixedInterpreter.label} ({fixedInterpreter.value})</span>
+          <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
+            Required
+          </span>
+        </div>
+      )}
+      {!shellOverrideSupported && (
+        <p id="shell-override-help" className="text-xs text-dark-400">
+          {fixedInterpreter.label} is required by this payload, so changing it could break the command.
+        </p>
+      )}
 
       <div className="separator" />
 
@@ -142,6 +198,57 @@ export default function SettingsPanel({
         Payload Selection
         <span className="ml-auto text-xs text-dark-400 font-normal">{payloadCount} total</span>
       </div>
+
+      <button
+        id="open-payload-advisor"
+        type="button"
+        onClick={() => setAdvisorOpen(true)}
+        className="mb-3 flex w-full items-center justify-between rounded-xl border border-shell-blue/30 bg-shell-blue/10 px-3 py-2.5 text-left transition hover:border-shell-blue/50 hover:bg-shell-blue/15"
+        aria-haspopup="dialog"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-shell-blue">
+          <Sparkles size={16} />
+          Smart Payload Advisor
+        </span>
+        <span className="rounded-md border border-shell-blue/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
+          Guided
+        </span>
+      </button>
+
+      {advisorOpen && (
+        <PayloadAdvisor
+          catalog={payloadCatalog}
+          os={os}
+          mode={mode}
+          onApply={(payloadName) => {
+            handlePayloadChange(payloadName);
+            setSearchQuery('');
+            setAdvisorOpen(false);
+          }}
+          onClose={() => setAdvisorOpen(false)}
+        />
+      )}
+
+      <button
+        id="open-payload-explanation"
+        type="button"
+        onClick={() => setExplanationOpen(true)}
+        disabled={!selectedPayloadMetadata}
+        className="mb-3 flex w-full items-center gap-2 rounded-xl border border-purple-500/25 bg-purple-500/5 px-3 py-2.5 text-sm font-semibold text-purple-300 transition hover:border-purple-500/45 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        aria-haspopup="dialog"
+      >
+        <BookOpen size={16} />
+        Explain selected payload
+      </button>
+
+      {explanationOpen && selectedPayloadMetadata && (
+        <PayloadExplanation
+          metadata={selectedPayloadMetadata}
+          generatedPayload={generatedPayload}
+          listenerCommand={listenerCommand}
+          onClose={() => setExplanationOpen(false)}
+        />
+      )}
 
       {/* Category Filter */}
       {availableCategories && availableCategories.length > 2 && (
@@ -153,6 +260,7 @@ export default function SettingsPanel({
                 <button
                   key={cat}
                   onClick={() => handleCategoryChange(cat)}
+                  aria-pressed={category === cat}
                   className={`
                     whitespace-nowrap px-2 py-1 rounded-md text-xs font-medium
                     transition-all duration-150 border shrink-0
@@ -174,7 +282,17 @@ export default function SettingsPanel({
       <div className="relative mb-2" ref={dropdownRef}>
         {/* Dropdown Trigger */}
         <button
+          ref={triggerRef}
           onClick={() => setDropdownOpen(!dropdownOpen)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setDropdownOpen(true);
+            }
+          }}
+          aria-expanded={dropdownOpen}
+          aria-controls="payload-options"
+          aria-haspopup="listbox"
           className="
             w-full flex items-center justify-between gap-2
             bg-dark-900 border border-dark-600 rounded-lg px-4 py-2.5
@@ -218,10 +336,18 @@ export default function SettingsPanel({
                     focus:outline-none focus:ring-1 focus:ring-shell-blue/50
                   "
                   spellCheck={false}
+                  aria-label="Search payloads"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      setDropdownOpen(false);
+                      triggerRef.current?.focus();
+                    }
+                  }}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
+                    aria-label="Clear payload search"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-400 hover:text-gray-200"
                   >
                     <X size={14} />
@@ -231,7 +357,7 @@ export default function SettingsPanel({
             </div>
 
             {/* Payload List */}
-            <div className="max-h-64 overflow-y-auto p-1">
+            <div id="payload-options" role="listbox" className="max-h-64 overflow-y-auto p-1">
               {filteredPayloadNames.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-dark-400 text-center">
                   No payloads found
@@ -245,6 +371,8 @@ export default function SettingsPanel({
                       setDropdownOpen(false);
                       setSearchQuery('');
                     }}
+                    role="option"
+                    aria-selected={name === selectedPayload}
                     className={`
                       w-full text-left px-3 py-2 rounded-lg text-sm font-mono
                       transition-colors duration-100
@@ -281,6 +409,7 @@ export default function SettingsPanel({
           <button
             key={option}
             onClick={() => handleEncodingChange(option)}
+            aria-pressed={encoding === option}
             className={`
               py-2 px-3 rounded-lg text-xs font-medium
               transition-all duration-200 border
