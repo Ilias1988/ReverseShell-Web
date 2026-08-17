@@ -19,7 +19,7 @@ export function encodeBase64(str) {
     const bytes = new TextEncoder().encode(str);
     const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
     return btoa(binary);
-  } catch (e) {
+  } catch {
     // Fallback for simple ASCII
     return btoa(str);
   }
@@ -71,9 +71,44 @@ export function applyEncoding(payload, encoding) {
  * @returns {string} The payload with placeholders replaced
  */
 export function injectPayloadValues(template, ip, port) {
-  return template
+  const injected = template
     .replaceAll('{ip}', ip)
     .replaceAll('{port}', port);
+
+  if (injected !== template) return injected;
+
+  // PowerShell -EncodedCommand uses UTF-16LE Base64. Some legacy payload
+  // records contain their placeholders inside that encoded block, so decode,
+  // inject, and re-encode them here.
+  const encodedCommand = template.match(
+    /^(.*?\s-(?:e|enc|encodedcommand)\s+)([a-zA-Z0-9+/=]+)$/i,
+  );
+
+  if (!encodedCommand) return template;
+
+  try {
+    const bytes = Uint8Array.from(atob(encodedCommand[2]), char => char.charCodeAt(0));
+    let decoded = '';
+    for (let index = 0; index < bytes.length; index += 2) {
+      decoded += String.fromCharCode(bytes[index] | ((bytes[index + 1] || 0) << 8));
+    }
+
+    const replaced = decoded
+      .replaceAll('{ip}', ip)
+      .replaceAll('{port}', port);
+
+    if (replaced === decoded) return template;
+
+    let binary = '';
+    for (const char of replaced) {
+      const codePoint = char.charCodeAt(0);
+      binary += String.fromCharCode(codePoint & 0xff, codePoint >> 8);
+    }
+
+    return `${encodedCommand[1]}${btoa(binary)}`;
+  } catch {
+    return template;
+  }
 }
 
 /**

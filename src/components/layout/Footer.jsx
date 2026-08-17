@@ -5,7 +5,7 @@ import { Heart, Info, Github, Twitter, Linkedin, Globe } from 'lucide-react';
  */
 export default function Footer({ statusMessage }) {
   return (
-    <footer className="flex items-center justify-between px-6 py-3 border-t border-dark-700/50">
+    <footer className="flex flex-col gap-2 px-4 py-3 border-t border-dark-700/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       {/* Status */}
       <div className="flex items-center gap-2 text-sm text-dark-400">
         <Info size={14} className="shrink-0" />
@@ -22,6 +22,7 @@ export default function Footer({ statusMessage }) {
             rel="noopener noreferrer"
             className="text-dark-400 hover:text-gray-200 transition-colors duration-200"
             title="Website"
+            aria-label="Personal Website"
           >
             <Globe size={15} />
           </a>
@@ -31,6 +32,7 @@ export default function Footer({ statusMessage }) {
             rel="noopener noreferrer"
             className="text-dark-400 hover:text-gray-200 transition-colors duration-200"
             title="GitHub"
+            aria-label="GitHub profile"
           >
             <Github size={15} />
           </a>
@@ -40,6 +42,7 @@ export default function Footer({ statusMessage }) {
             rel="noopener noreferrer"
             className="text-dark-400 hover:text-gray-200 transition-colors duration-200"
             title="LinkedIn"
+            aria-label="LinkedIn profile"
           >
             <Linkedin size={15} />
           </a>
@@ -49,6 +52,7 @@ export default function Footer({ statusMessage }) {
             rel="noopener noreferrer"
             className="text-dark-400 hover:text-gray-200 transition-colors duration-200"
             title="X (Twitter)"
+            aria-label="X profile"
           >
             <Twitter size={15} />
           </a>

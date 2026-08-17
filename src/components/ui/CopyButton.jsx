@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { copyToClipboard } from '../../utils/encoding';
 
@@ -7,6 +7,13 @@ import { copyToClipboard } from '../../utils/encoding';
  */
 export default function CopyButton({ text, label = 'Copy', className = '', onCopy }) {
   const [copied, setCopied] = useState(false);
+  const resetTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = async () => {
     if (!text) return;
@@ -15,7 +22,8 @@ export default function CopyButton({ text, label = 'Copy', className = '', onCop
     if (success) {
       setCopied(true);
       onCopy?.();
-      setTimeout(() => setCopied(false), 2000);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -23,6 +31,7 @@ export default function CopyButton({ text, label = 'Copy', className = '', onCop
     <button
       onClick={handleCopy}
       disabled={!text}
+      aria-label={copied ? 'Copied to clipboard' : label}
       className={`
         inline-flex items-center gap-2 px-4 py-2 rounded-lg
         text-sm font-medium transition-all duration-200

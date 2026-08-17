@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import App from './App.jsx'
 import './index.css'
@@ -14,11 +14,9 @@ const app = (
   </React.StrictMode>
 )
 
-// If the root has children, it means the HTML was pre-rendered.
-// Use hydrateRoot() so React attaches to the existing DOM (no flicker).
-// Otherwise (local dev), use createRoot() for a normal client-side render.
-if (rootElement.hasChildNodes()) {
-  ReactDOM.hydrateRoot(rootElement, app)
-} else {
-  ReactDOM.createRoot(rootElement).render(app)
-}
+// The production build contains a Puppeteer-generated HTML snapshot for
+// crawlers. That snapshot is captured after effects have run, so it is not a
+// valid React SSR tree and must not be hydrated. Replace it with the live app;
+// the original HTML remains available in the raw response for no-JS crawlers.
+rootElement.replaceChildren()
+createRoot(rootElement).render(app)

@@ -21,7 +21,7 @@ export default function OutputPanel({
   const listenerLabel = mode === 'reverse' ? 'Listener Command' : 'Connect Command';
 
   return (
-    <div className="panel flex flex-col h-full overflow-hidden">
+    <div className="panel flex flex-col min-h-[420px] overflow-hidden lg:h-full lg:min-h-0">
 
       {/* ── Listener Command ────────────────────── */}
       <div className="p-5 pb-0">
@@ -110,6 +110,7 @@ export default function OutputPanel({
             <textarea
               readOnly
               value={generatedPayload}
+              aria-label="Generated payload"
               className="
                 absolute inset-0 w-full h-full
                 bg-transparent text-green-400 font-mono text-sm

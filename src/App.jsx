@@ -52,8 +52,12 @@ export default function App() {
       <Header />
 
       {/* ── Mode Tabs ──────────────────────────── */}
-      <div className="px-5 pb-3">
-        <div className="flex items-center gap-1 p-1 bg-dark-900/60 border border-dark-700/50 rounded-xl w-fit">
+      <div className="px-4 sm:px-5 pb-3 overflow-x-auto">
+        <div
+          className="flex items-center gap-1 p-1 bg-dark-900/60 border border-dark-700/50 rounded-xl w-fit"
+          role="tablist"
+          aria-label="Payload generator mode"
+        >
           {MODE_TABS.map(({ id, label, icon: Icon }) => {
             const isActive = shell.mode === id;
             const activeStyles = {
@@ -64,7 +68,11 @@ export default function App() {
             return (
               <button
                 key={id}
+                id={`mode-tab-${id}`}
                 onClick={() => shell.handleModeChange(id)}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls="tool-panel"
                 className={`
                   flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                   transition-all duration-200
@@ -83,12 +91,20 @@ export default function App() {
       </div>
 
       {/* Main Content — tool area occupies the viewport */}
-      <main className="h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-4 px-5 pb-2 min-h-0 overflow-hidden">
+      <main
+        id="tool-panel"
+        role="tabpanel"
+        aria-labelledby={`mode-tab-${shell.mode}`}
+        className="flex flex-col gap-4 px-4 sm:px-5 pb-4 lg:h-[calc(100vh-140px)] lg:flex-row lg:pb-2 lg:min-h-0 lg:overflow-hidden"
+      >
         {isMsfvenom ? (
           /* ════ MSFVenom Mode ════ */
           <MsfvenomPanel
             ip={shell.ip}
+            setIp={shell.setIp}
             port={shell.port}
+            setPort={shell.setPort}
+            connectionErrors={shell.connectionErrors}
             onCopy={(what) => {
               shell.showCopySuccess(what);
               showToast(`${what} copied to clipboard!`);
@@ -98,7 +114,7 @@ export default function App() {
           /* ════ Reverse / Bind Mode ════ */
           <>
             {/* Left Panel: Settings */}
-            <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 min-h-0 overflow-hidden">
+            <div className="w-full lg:w-[380px] xl:w-[420px] lg:shrink-0 lg:min-h-0 lg:overflow-hidden">
               <SettingsPanel
                 ip={shell.ip}
                 setIp={shell.setIp}
@@ -121,18 +137,29 @@ export default function App() {
                 handleCategoryChange={shell.handleCategoryChange}
                 availableCategories={shell.availableCategories}
                 mode={shell.mode}
+                connectionErrors={shell.connectionErrors}
+                shellOverrideSupported={shell.shellOverrideSupported}
+                fixedInterpreter={shell.fixedInterpreter}
+                payloadCatalog={shell.payloadCatalog}
+                selectedPayloadMetadata={shell.selectedPayloadMetadata}
+                listenerCommand={shell.listenerCommand}
+                generatedPayload={shell.generatedPayload}
               />
             </div>
 
             {/* Right Panel: Output */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="w-full min-h-[420px] lg:flex-1 lg:min-h-0 lg:overflow-hidden">
               <OutputPanel
                 listenerCommand={shell.listenerCommand}
                 generatedPayload={shell.generatedPayload}
                 selectedPayload={shell.selectedPayload}
                 encoding={shell.encoding}
                 mode={shell.mode}
-                shellBinary={shell.shell}
+                shellBinary={shell.shellOverrideSupported
+                  ? shell.shell
+                  : shell.fixedInterpreter.value !== 'fixed'
+                    ? shell.fixedInterpreter.value
+                    : ''}
                 onCopyListener={() => {
                   shell.showCopySuccess('Listener');
                   showToast('Listener command copied to clipboard!');

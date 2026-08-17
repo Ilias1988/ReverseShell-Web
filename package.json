@@ -4,12 +4,17 @@
   "version": "1.0.0",
   "homepage": "https://shellgenerator.dev",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prerender.js",
     "build:only": "vite build",
     "prerender": "node scripts/prerender.js",
     "lint": "eslint .",
+    "test": "node --test tests/core.test.js",
+    "verify": "npm run lint && npm run test && npm run build && node scripts/verify-build.js",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist -r https://github.com/Ilias1988/ReverseShell-Web.git"
@@ -21,14 +26,19 @@
     "react-helmet-async": "^3.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.17",
-    "gh-pages": "^6.1.1",
-    "postcss": "^8.4.33",
-    "puppeteer": "^24.40.0",
-    "tailwindcss": "^3.4.1",
-    "vite": "^5.0.12"
+    "@vitejs/plugin-react": "^6.0.5",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "gh-pages": "^6.3.0",
+    "globals": "^17.11.0",
+    "postcss": "^8.5.26",
+    "puppeteer": "^25.7.0",
+    "tailwindcss": "^3.4.19",
+    "vite": "^8.2.1"
   }
 }
