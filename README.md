@@ -26,11 +26,12 @@ A modern, browser-based shell payload generator built with **React**, **Vite**, 
 |---------|-------------|
 | 🎨 **Dark Mode UI** | Sleek, professional dark theme optimized for long hacking sessions |
 | 🔀 **3 Mode Tabs** | **Reverse Shell**, **Bind Shell**, and **MSFVenom** generator in one tool |
-| 📚 **180+ Payloads** | 90+ reverse, 32 bind, 60+ MSFVenom payload options |
+| 📚 **170+ Options** | 111 audited reverse/bind payloads plus 60+ MSFVenom payload options |
 | 🐚 **Shell Selector** | Choose shell binary (sh, bash, zsh, dash, ash, ksh, cmd.exe, powershell.exe, etc.) |
 | 💀 **MSFVenom Generator** | Full command builder with payloads, formats, encoders, arch, platform, bad chars |
 | ✨ **Smart Payload Advisor** | Rank payloads by transport, family, and binaries known to exist on the target |
 | 📖 **Payload Explanation** | Explain direction, requirements, placeholders, compatibility notes, and the guided workflow |
+| 🧪 **Catalog Confidence** | Every selectable payload is marked `conditional` or `experimental`; the UI never claims runtime verification without evidence |
 | 🏷️ **Category Filter** | Filter payloads by language (Bash, Python, PHP, Java, PowerShell, C#, etc.) |
 | ⚡ **Real-Time Generation** | Payload and listener update **instantly** as you type IP/Port |
 | 🔐 **Smart Encoding** | Supports **Base64**, **URL Encode**, and **Double URL Encode** |
@@ -58,6 +59,11 @@ The latest maintenance pass focused on making the application reliable in produc
 | **PowerShell payloads** | Fixed `{ip}` and `{port}` substitution inside UTF-16LE PowerShell `-EncodedCommand` payloads before re-encoding |
 | **MSFVenom generator** | Added editable LHOST/RHOST and LPORT controls, automatic valid payload selection, format/platform/architecture/encoder compatibility checks, and safer argument quoting |
 | **Payload catalog** | Removed invalid webshell-style generator entries from selectable command payloads and corrected duplicate/incorrect MSFVenom entries |
+| **Catalog hardening** | Added a catalog-wide audit for unresolved placeholders, duplicate templates, legacy doubled braces, metadata validity, and Advisor capability coverage |
+| **Generated source** | Fixed legacy doubled-brace output that could make generated C, C#, Go, and PowerShell source invalid |
+| **MSFVenom handlers** | Staged command shells and all Meterpreter payloads now generate `exploit/multi/handler`; Netcat is reserved for simple stageless command shells |
+| **Advisor accuracy** | Capabilities are derived from the real payload requirements, unavailable entries are hidden by default, and experimental entries require an explicit filter |
+| **Catalog scope** | Removed duplicate or delivery-only entries that depended on an unspecified hosted file; retained advanced entries with visible requirements and warnings |
 | **Shell selection** | Shell overrides are applied only to compatible templates; fixed payloads now display their actual required interpreter instead of a misleading disabled selection |
 | **Validation & safety** | Added host, port, integer-range, bad-character, and output-filename validation; invalid values no longer produce commands |
 | **Accessibility** | Added labels, ARIA tab/listbox semantics, pressed/expanded states, keyboard handling, and clearer validation feedback |
@@ -71,11 +77,21 @@ The latest maintenance pass focused on making the application reliable in produc
 The repaired production build has been checked with:
 
 - ESLint with zero errors or warnings
-- 16/16 passing unit tests
+- 24/24 passing unit tests
+- Passing audit of all 111 selectable reverse/bind payloads
 - Successful Vite production build and static prerender
 - Successful desktop interaction test for MSFVenom LHOST updates
 - Successful mobile layout/scrolling test at a 390 × 844 viewport
 - No browser runtime errors during the final end-to-end run
+
+### Catalog confidence levels
+
+- **Verified** — reserved for a payload executed successfully in a recorded test environment. The current release intentionally contains no payload with this label yet.
+- **Conditional** — the template, placeholders, and requirements passed static review, but behavior still depends on the target OS, binary implementation, version, firewall, and network path.
+- **Experimental** — uncommon, compiled, external-resource, or LOLBAS-style payload. Hidden by default in the Advisor and intended for deliberate lab validation.
+- **Deprecated** — retained only for compatibility and not recommended. There are currently no selectable deprecated entries.
+
+The generator creates commands; it does not execute them. Always verify the generated output and listener in an isolated, authorized target before relying on it during an assessment.
 
 ---
 
@@ -125,20 +141,20 @@ Dynamically swap the shell binary used in every payload:
 
 ## 🎯 Supported Payloads
 
-### Reverse Shell — Linux / Generic (60+ payloads)
+### Reverse Shell — Linux / Generic (55 payloads)
 - **Bash:** `-i`, `196`, `read line`, `5`, `UDP`
 - **Netcat:** `mkfifo`, `-e`, `-c`, `BusyBox`
 - **Ncat:** TCP and UDP variants
 - **Python:** Python 2 & 3 variants, shortest one-liner
-- **PHP:** PentestMonkey, Ivan Sincek, `system()`, `exec()`, `shell_exec()`, `popen()`, `proc_open()`, webshells, P0wny Shell
+- **PHP:** PentestMonkey, Ivan Sincek, `system()`, `shell_exec()`, `popen()`, and `proc_open()` variants
 - **Languages:** Perl, Ruby, Java, Node.js, Lua, Golang, Awk, Dart, Crystal, Haskell, Vlang
-- **Tools:** Socat (with TTY), OpenSSL, Telnet, zsh, sqlite3, curl, rustcat
+- **Tools:** Socat (with TTY), OpenSSL, Telnet, zsh, sqlite3, and rustcat
 
-### Reverse Shell — Windows (30+ payloads)
-- **PowerShell:** Multiple variants including Base64, hidden window, IEX download, TCP
+### Reverse Shell — Windows (24 payloads)
+- **PowerShell:** Multiple direct and Base64/EncodedCommand variants
 - **Executables:** `nc.exe`, `ncat.exe`
-- **Living off the Land:** MSBuild, Mshta, Regsvr32
-- **Advanced:** ConPtyShell (fully interactive PTY)
+- **Living off the Land:** MSBuild (experimental; requires an explicit build workflow)
+- **Advanced:** ConPtyShell (experimental; downloads a reviewed external script)
 - **Languages:** Python, Ruby, Perl, Lua, Golang, Java, Node.js, Groovy, Haskell
 
 ### Bind Shell — Linux (18 payloads)
@@ -205,6 +221,9 @@ npm run lint
 # Core payload-generation and validation tests
 npm test
 
+# Full selectable-payload catalog audit
+npm run audit:catalog
+
 # Complete check: lint + tests + production build + prerender + browser E2E
 npm run verify
 ```
@@ -244,10 +263,11 @@ This will build the project and push the `dist/` folder to the `gh-pages` branch
 2. Click **Smart Payload Advisor** above the payload filters
 3. Select TCP/UDP and an optional payload family
 4. Mark only binaries or interpreters you know are available on the target
-5. Review the `Compatible`, `Check requirements`, and `Unavailable` explanations
+5. Review the `Capability match`, `Check requirements`, and `Unavailable` explanations
 6. Click **Use payload** to apply a recommendation without changing the IP, port, encoding, or OS
 
 Leaving all target capabilities unselected keeps every matching payload visible and marks its requirements as unconfirmed.
+By default, the Advisor recommends reviewed `conditional` entries and hides `experimental` entries. Use the **Catalog confidence** filter only when you intentionally want to inspect advanced payloads.
 
 ### Payload Explanation
 
@@ -365,6 +385,15 @@ const BIND_LINUX_PAYLOADS = {
 ```
 
 > **Note:** Use `{ip}` and `{port}` as placeholders — they will be automatically replaced with user input. Shell binaries (`/bin/sh`, `cmd.exe`) will be dynamically replaced based on the Shell Selector.
+
+Every new selectable payload must also pass `npm run audit:catalog`. Add explicit metadata overrides when automatic category, runtime, transport, warning, or confidence inference would be misleading.
+
+## 🔎 Compatibility references
+
+- [GNU Bash redirections](https://www.gnu.org/software/bash/manual/html_node/Redirections.html) for `/dev/tcp` and `/dev/udp` behavior
+- [Nmap Ncat command execution](https://nmap.org/ncat/guide/ncat-exec.html) for implementation-specific `--exec`/`-e` behavior
+- [Rapid7 payload types](https://docs.rapid7.com/metasploit/working-with-payloads/) for staged/stageless naming and handler requirements
+- [Rapid7 Payload Generator](https://docs.rapid7.com/metasploit/the-payload-generator/) for MSFVenom generation guidance
 
 ---
 

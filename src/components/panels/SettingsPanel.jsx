@@ -250,6 +250,23 @@ export default function SettingsPanel({
         />
       )}
 
+      {selectedPayloadMetadata?.verification && (
+        <div
+          className={`mb-3 rounded-lg border px-3 py-2 text-xs leading-relaxed ${selectedPayloadMetadata.verification.status === 'experimental'
+            ? 'border-purple-500/25 bg-purple-500/5 text-purple-200'
+            : selectedPayloadMetadata.verification.status === 'verified'
+              ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-200'
+              : 'border-amber-500/25 bg-amber-500/5 text-amber-200'
+          }`}
+          data-testid="payload-verification-status"
+        >
+          <span className="font-semibold capitalize">
+            Catalog confidence: {selectedPayloadMetadata.verification.status}.
+          </span>{' '}
+          {selectedPayloadMetadata.verification.basis}
+        </div>
+      )}
+
       {/* Category Filter */}
       {availableCategories && availableCategories.length > 2 && (
         <>

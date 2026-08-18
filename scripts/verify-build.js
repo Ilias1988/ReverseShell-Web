@@ -81,6 +81,18 @@ try {
   await page.waitForSelector('#open-payload-advisor')
   await page.click('#open-payload-advisor')
   await page.waitForSelector('[data-testid="payload-advisor-dialog"]')
+  for (const capability of ['bash', 'gawk', 'gcc']) {
+    if (!await page.$(`[data-advisor-capability="${capability}"]`)) {
+      throw new Error(`Smart Payload Advisor is missing the ${capability} capability`)
+    }
+  }
+  const confidenceOptions = await page.$$eval(
+    '#advisor-maturity option',
+    options => options.map(option => option.value),
+  )
+  if (!confidenceOptions.includes('recommended') || !confidenceOptions.includes('all')) {
+    throw new Error('Smart Payload Advisor is missing catalog-confidence filters')
+  }
   await page.click('[data-advisor-capability="bash"]')
 
   const advisorResultCount = await page.$$eval('[data-advisor-result]', elements => elements.length)
@@ -95,13 +107,25 @@ try {
   await firstAdvisorAction.click()
   await page.waitForSelector('[data-testid="payload-advisor-dialog"]', { hidden: true })
 
+  const confidenceText = await page.$eval(
+    '[data-testid="payload-verification-status"]',
+    element => element.textContent,
+  )
+  if (!confidenceText.includes('conditional') || !confidenceText.includes('runtime behavior depends')) {
+    throw new Error('Selected payload does not expose its catalog confidence')
+  }
+
   await page.click('#open-payload-explanation')
   await page.waitForSelector('[data-testid="payload-explanation-dialog"]')
   const explanationText = await page.$eval(
     '[data-testid="payload-explanation-dialog"]',
     element => element.textContent,
   )
-  if (!explanationText.includes('Runtime requirements') || !explanationText.includes('Guided workflow')) {
+  if (
+    !explanationText.includes('Runtime requirements')
+    || !explanationText.includes('Guided workflow')
+    || !explanationText.includes('Catalog confidence: conditional')
+  ) {
     throw new Error('Payload explanation is missing required guidance sections')
   }
   await page.keyboard.press('Escape')

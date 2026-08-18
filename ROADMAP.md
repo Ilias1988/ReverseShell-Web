@@ -1,14 +1,15 @@
 # Web Reverse Shell Generator v2 Roadmap
 
-This document is the source of truth for the v2 development cycle. The existing
-`web-revshell` project remains the stable v1. All new work is isolated in
-`web-revshell-v2` on the `v2-development` branch.
+This document is the source of truth for the v2 development cycle. Production
+hardening is isolated on `agent/catalog-hardening` until the complete release
+checklist passes; the deployed `main` branch remains unchanged during the work.
 
 ## Stable baseline
 
-- Baseline commit: `784b44d` (`chore: preserve verified v1 baseline`)
+- Production baseline: the current `main` branch and GitHub Pages deployment
 - Dependency audit: 0 known vulnerabilities
-- Unit tests: 8/8 passing
+- Unit tests: 24/24 passing on the hardening branch
+- Catalog audit: 111/111 selectable reverse/bind entries pass
 - Production build and prerender: passing
 - Desktop and mobile browser verification: passing
 - Recovery point: the local `main` branch must remain unchanged until v2 is ready
@@ -28,7 +29,7 @@ Every phase must satisfy all of the following before it can be marked complete:
 
 ## Phase 1 — Payload metadata foundation
 
-**Status: complete.** The validated catalog currently covers all 116 selectable
+**Status: complete.** The validated catalog currently covers all 111 selectable
 reverse/bind payloads and is protected by catalog-wide unit tests.
 
 Create a normalized metadata layer without rewriting the existing payload
@@ -111,6 +112,22 @@ Add an explanation drawer for the selected payload.
 - Explanations are derived from trusted local metadata, not generated remotely.
 - Content remains usable with JavaScript-disabled prerender for SEO basics.
 - The drawer is keyboard accessible and responsive.
+
+## Production catalog hardening
+
+**Status: static hardening complete; runtime matrix pending.**
+
+- Fixed staged and Meterpreter MSFVenom handler selection.
+- Fixed invalid doubled braces in generated C, C#, Go, and PowerShell source.
+- Corrected Bash UDP and GNU Awk runtime assumptions.
+- Removed duplicate and incomplete hosted-resource payload stubs.
+- Added capability coverage for every declared Advisor requirement.
+- Added `conditional` and `experimental` confidence states without making false runtime-verification claims.
+- Added a catalog-wide automated audit to the release verification command.
+
+Runtime verification remains pending for representative Linux, Windows, Ncat,
+Netcat, PowerShell, and Metasploit environments. A payload must not be promoted
+to `verified` until its environment and verification date are recorded.
 
 ## Phase 4 — Favorites, history, presets, and sharing
 

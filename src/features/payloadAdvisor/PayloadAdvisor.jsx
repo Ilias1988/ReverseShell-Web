@@ -17,7 +17,7 @@ import {
 const STATUS_STYLES = {
   compatible: {
     icon: CheckCircle2,
-    label: 'Compatible',
+    label: 'Capability match',
     className: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
   },
   warning: {
@@ -32,22 +32,40 @@ const STATUS_STYLES = {
   },
 }
 
+const VERIFICATION_STYLES = {
+  verified: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  conditional: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  experimental: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
+  deprecated: 'border-red-500/30 bg-red-500/10 text-red-300',
+}
+
 export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) {
   const closeButtonRef = useRef(null)
   const dialogRef = useRef(null)
   const [transport, setTransport] = useState('any')
   const [category, setCategory] = useState('Any')
+  const [maturity, setMaturity] = useState('recommended')
   const [capabilities, setCapabilities] = useState([])
+  const [showUnavailable, setShowUnavailable] = useState(false)
 
-  const capabilityOptions = getAdvisorCapabilityOptions(os)
+  const capabilityOptions = useMemo(
+    () => getAdvisorCapabilityOptions(os, catalog),
+    [catalog, os],
+  )
   const categories = useMemo(
     () => ['Any', ...new Set(catalog.map(payload => payload.category))],
     [catalog],
   )
   const recommendations = useMemo(
-    () => rankPayloads(catalog, { transport, category, capabilities }),
-    [catalog, transport, category, capabilities],
+    () => rankPayloads(catalog, { transport, category, capabilities, maturity }),
+    [catalog, transport, category, capabilities, maturity],
   )
+  const unavailableCount = recommendations.filter(
+    recommendation => recommendation.status === 'unavailable',
+  ).length
+  const visibleRecommendations = showUnavailable
+    ? recommendations
+    : recommendations.filter(recommendation => recommendation.status !== 'unavailable')
 
   useEffect(() => {
     const previouslyFocused = document.activeElement
@@ -94,7 +112,9 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
   const resetFilters = () => {
     setTransport('any')
     setCategory('Any')
+    setMaturity('recommended')
     setCapabilities([])
+    setShowUnavailable(false)
   }
 
   return (
@@ -178,13 +198,30 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
               </select>
             </div>
 
+            <div className="mb-5">
+              <label htmlFor="advisor-maturity" className="mb-2 block text-sm font-semibold text-gray-200">
+                Catalog confidence
+              </label>
+              <select
+                id="advisor-maturity"
+                value={maturity}
+                onChange={event => setMaturity(event.target.value)}
+                className="input-field"
+              >
+                <option value="recommended">Recommended (hide experimental)</option>
+                <option value="verified">Runtime verified only</option>
+                <option value="all">Include experimental</option>
+              </select>
+            </div>
+
             <div>
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-200">
                 <Cpu size={16} className="text-purple-400" />
                 Available on target
               </div>
               <p className="mb-3 text-xs leading-relaxed text-dark-400">
-                Select only tools you know are installed. Leave everything empty when capabilities are unknown.
+                Select only tools you know are installed. Once selected, unselected tools are treated as unavailable.
+                Leave everything empty when capabilities are unknown.
               </p>
               <div className="flex flex-wrap gap-2">
                 {capabilityOptions.map(option => (
@@ -221,26 +258,47 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
               <div>
                 <h3 className="font-semibold text-white">Recommendations</h3>
                 <p className="text-xs text-dark-400">
-                  {recommendations.length} matching payloads, ordered by compatibility.
+                  {visibleRecommendations.length} usable or reviewable payloads, ordered by declared requirements.
                 </p>
               </div>
-              {capabilities.length === 0 && (
+              <div className="flex flex-wrap justify-end gap-2">
+                {capabilities.length === 0 && (
                 <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
                   Requirements unconfirmed
                 </span>
-              )}
+                )}
+                {capabilities.length > 0 && unavailableCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnavailable(current => !current)}
+                    aria-pressed={showUnavailable}
+                    className="rounded-md border border-dark-600 bg-dark-900 px-2 py-1 text-[11px] text-dark-300 transition hover:border-dark-500 hover:text-white"
+                  >
+                    {showUnavailable ? 'Hide' : 'Show'} unavailable ({unavailableCount})
+                  </button>
+                )}
+              </div>
             </div>
 
-            {recommendations.length === 0 ? (
+            {visibleRecommendations.length === 0 ? (
               <div className="rounded-xl border border-dashed border-dark-600 p-8 text-center">
-                <p className="font-medium text-gray-200">No payload matches these filters.</p>
+                <p className="font-medium text-gray-200">No usable payload matches this capability profile.</p>
+                {unavailableCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnavailable(true)}
+                    className="mt-3 block w-full text-sm text-amber-300 hover:underline"
+                  >
+                    Review {unavailableCount} unavailable payloads
+                  </button>
+                )}
                 <button type="button" onClick={resetFilters} className="mt-3 text-sm text-shell-blue hover:underline">
                   Reset filters
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                {recommendations.slice(0, 12).map((recommendation) => {
+                {visibleRecommendations.slice(0, 12).map((recommendation) => {
                   const statusStyle = STATUS_STYLES[recommendation.status]
                   const StatusIcon = statusStyle.icon
                   return (
@@ -259,6 +317,9 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
                             </span>
                             <span className="rounded-md border border-dark-600 px-2 py-0.5 text-[10px] uppercase text-dark-300">
                               {recommendation.payload.transport}
+                            </span>
+                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase ${VERIFICATION_STYLES[recommendation.payload.verification.status]}`}>
+                              {recommendation.payload.verification.status}
                             </span>
                           </div>
                           <p className="text-sm text-dark-200">{recommendation.reasons[0]}</p>

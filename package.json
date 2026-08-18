@@ -14,7 +14,8 @@
     "prerender": "node scripts/prerender.js",
     "lint": "eslint .",
     "test": "node --test tests/core.test.js",
-    "verify": "npm run lint && npm run test && npm run build && node scripts/verify-build.js",
+    "audit:catalog": "node scripts/audit-payload-catalog.js",
+    "verify": "npm run lint && npm run test && npm run audit:catalog && npm run build && node scripts/verify-build.js",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist -r https://github.com/Ilias1988/ReverseShell-Web.git"

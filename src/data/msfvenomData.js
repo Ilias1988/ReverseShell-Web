@@ -335,35 +335,57 @@ export function generateMsfvenomCommand({
 }
 
 /**
+ * Classify delivery and handler requirements encoded in a Metasploit payload
+ * name. Staged payloads use slash-separated stage identifiers such as
+ * shell/reverse_tcp, while stageless payloads use shell_reverse_tcp.
+ */
+export function getMsfvenomPayloadTraits(payload = '') {
+  const direction = payload.includes('reverse')
+    ? 'reverse'
+    : payload.includes('bind')
+      ? 'bind'
+      : 'unknown';
+  const isMeterpreter = /(?:^|\/)meterpreter(?:[/_]|$)/i.test(payload);
+  const isStaged = /\/(?:shell|meterpreter)\/(?:reverse|bind)_[^/]+$/i.test(payload);
+
+  return {
+    direction,
+    isMeterpreter,
+    isStaged,
+    requiresHandler: isStaged || isMeterpreter,
+  };
+}
+
+/**
  * Get a listener command for an msfvenom payload
  */
 export function getMsfvenomListener({ payload, ip, port }) {
-  const isReverse = payload.includes('reverse');
-  const isMeterpreter = payload.includes('meterpreter');
-  if (isMeterpreter) {
-    let handler = 'exploit/multi/handler';
+  const traits = getMsfvenomPayloadTraits(payload);
+  if (traits.requiresHandler) {
     let lines = [
       `msfconsole -q -x "`,
-      `use ${handler};`,
+      'use exploit/multi/handler;',
       `set PAYLOAD ${payload};`,
     ];
 
-    if (isReverse) {
+    if (traits.direction === 'reverse') {
       lines.push(`set LHOST ${ip || '0.0.0.0'};`);
       lines.push(`set LPORT ${port || '4444'};`);
-    } else {
+    } else if (traits.direction === 'bind') {
       lines.push(`set RHOST ${ip || '10.10.10.10'};`);
       lines.push(`set LPORT ${port || '4444'};`);
     }
 
-    lines.push(`exploit"`)
+    lines.push('run"')
     return lines.join('\n');
   }
 
-  // Simple shell — use nc
-  if (isReverse) {
+  // A simple stageless command shell can be handled by Netcat.
+  if (traits.direction === 'reverse') {
     return `nc -lvnp ${port || '4444'}`;
-  } else {
+  }
+  if (traits.direction === 'bind') {
     return `nc ${ip || '10.10.10.10'} ${port || '4444'}`;
   }
+  return 'Review the selected payload documentation for its handler requirements.';
 }

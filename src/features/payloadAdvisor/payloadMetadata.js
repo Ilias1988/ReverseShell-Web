@@ -3,17 +3,47 @@ import {
   supportsShellOverride,
 } from '../../utils/shells.js'
 
-export const PAYLOAD_METADATA_SCHEMA_VERSION = 1
+export const PAYLOAD_METADATA_SCHEMA_VERSION = 2
+
+export const PAYLOAD_VERIFICATION_STATUSES = new Set([
+  'verified',
+  'conditional',
+  'experimental',
+  'deprecated',
+])
+
+const EXPERIMENTAL_CATEGORIES = new Set([
+  'Awk',
+  'C',
+  'C#',
+  'ConPty',
+  'Crystal',
+  'Dart',
+  'Go',
+  'Groovy',
+  'Haskell',
+  'Java',
+  'LOLBAS',
+  'Rustcat',
+  'Vlang',
+])
 
 export const EXCLUDED_PAYLOAD_NAMES = {
   Linux: new Set([
+    // Delivery-only stubs need a separate hosted-resource workflow.
+    'curl',
     'PHP cmd',
     'PHP cmd 2',
     'PHP cmd small',
+    'PHP exec',
     'P0wny Shell (Webshell)',
     'Javascript',
   ]),
   Windows: new Set([
+    // Delivery-only stubs need a separate hosted-resource workflow.
+    'PowerShell #5 (IEX)',
+    'Mshta',
+    'Regsvr32',
     'PHP cmd Windows',
     'PHP cmd 2 Windows',
     'PHP cmd small Windows',
@@ -58,7 +88,7 @@ const CATEGORY_RULES = [
 ]
 
 const CATEGORY_BINARIES = {
-  Awk: ['awk'],
+  Awk: ['gawk'],
   Bash: ['bash'],
   C: ['c-compiler'],
   'C#': ['dotnet-or-csharp-compiler'],
@@ -112,6 +142,26 @@ export function inferTransport(name, template) {
   return /udp/i.test(`${name} ${template}`) ? 'udp' : 'tcp'
 }
 
+export function inferPayloadVerification({ category }) {
+  if (EXPERIMENTAL_CATEGORIES.has(category)) {
+    return {
+      status: 'experimental',
+      basis: 'Template reviewed; runtime execution has not been confirmed in the current release.',
+      lastVerified: null,
+      testedOn: [],
+      source: null,
+    }
+  }
+
+  return {
+    status: 'conditional',
+    basis: 'Template and requirements reviewed; runtime behavior depends on the target implementation and version.',
+    lastVerified: null,
+    testedOn: [],
+    source: null,
+  }
+}
+
 export function inferRequiredBinaries({ name, template, os, category }) {
   const binaries = new Set(CATEGORY_BINARIES[category] || [])
   const interpreter = detectPayloadInterpreter(template, name, os)
@@ -120,6 +170,7 @@ export function inferRequiredBinaries({ name, template, os, category }) {
   if (/\bbusybox\b/i.test(`${name} ${template}`)) binaries.add('busybox')
   if (/\bncat(?:\.exe)?\b/i.test(template)) binaries.add(os === 'Windows' ? 'ncat.exe' : 'ncat')
   if (/\bnc(?:\.exe)?\b/i.test(template)) binaries.add(os === 'Windows' ? 'nc.exe' : 'nc')
+  if (/\bmsbuild(?:\.exe)?\b/i.test(`${name} ${template}`)) binaries.add('msbuild.exe')
 
   return [...binaries]
 }
@@ -133,6 +184,12 @@ function inferWarnings({ name, template, mode, transport }) {
   }
   if (/\bnc(?:\.exe)?\b[^\n]*\s-e\s/i.test(template)) {
     warnings.push('Requires a Netcat implementation that supports the -e option.')
+  }
+  if (/\/inet\/tcp/i.test(template)) {
+    warnings.push('Requires GNU Awk networking support.')
+  }
+  if (/https?:\/\//i.test(template)) {
+    warnings.push('Downloads a remote resource; review and host the dependency from a trusted location.')
   }
   if (transport === 'udp') {
     warnings.push('UDP delivery is connectionless and may require additional listener handling.')
@@ -158,6 +215,15 @@ export function validatePayloadMetadata(metadata) {
   if (!Array.isArray(metadata.requiredBinaries)) errors.push('requiredBinaries must be an array.')
   if (!Array.isArray(metadata.warnings)) errors.push('warnings must be an array.')
   if (typeof metadata.shellOverrideSupported !== 'boolean') errors.push('shellOverrideSupported must be boolean.')
+  if (!PAYLOAD_VERIFICATION_STATUSES.has(metadata.verification?.status)) {
+    errors.push('verification.status is invalid.')
+  }
+  if (!metadata.verification?.basis || typeof metadata.verification.basis !== 'string') {
+    errors.push('verification.basis is required.')
+  }
+  if (!Array.isArray(metadata.verification?.testedOn)) {
+    errors.push('verification.testedOn must be an array.')
+  }
   if (!metadata.explanation?.summary) errors.push('explanation.summary is required.')
 
   return errors
@@ -175,6 +241,10 @@ export function buildPayloadMetadata({ name, template, os, mode, overrides = {} 
     category,
   })
   const warnings = overrides.warnings || inferWarnings({ name, template, mode, transport })
+  const verification = {
+    ...inferPayloadVerification({ category }),
+    ...overrides.verification,
+  }
 
   const metadata = {
     ...overrides,
@@ -191,6 +261,7 @@ export function buildPayloadMetadata({ name, template, os, mode, overrides = {} 
     shellOverrideSupported: overrides.shellOverrideSupported
       ?? supportsShellOverride(template, name, os),
     warnings,
+    verification,
     explanation: {
       summary: `Generates a ${mode} ${category} payload for ${os}.`,
       requirements: requiredBinaries.length > 0
