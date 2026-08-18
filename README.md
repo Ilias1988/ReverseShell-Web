@@ -63,6 +63,7 @@ The latest maintenance pass focused on making the application reliable in produc
 | **Generated source** | Fixed legacy doubled-brace output that could make generated C, C#, Go, and PowerShell source invalid |
 | **Docker runtime matrix** | Added isolated end-to-end Linux reverse/bind checks plus C and Node.js syntax validation; fixed a Ruby file-descriptor bug and a nested-brace normalization bug found by the matrix |
 | **MSFVenom compatibility matrix** | Validated every catalog payload, output format, and encoder against pinned Metasploit Framework 6.4.0; added representative cross-platform generation and handler checks |
+| **PowerShell compatibility matrix** | Added exact parser checks for seven direct templates plus safe outbound and bind-capability probes on Windows PowerShell 5.1; exact shell execution remains lab-only and is not claimed as verified |
 | **Offline reliability** | Removed runtime Google Fonts requests; the production UI now uses local system font stacks without a third-party network dependency |
 | **MSFVenom handlers** | Staged command shells and all Meterpreter payloads now generate `exploit/multi/handler`; Netcat is reserved for simple stageless command shells |
 | **Advisor accuracy** | Capabilities are derived from the real payload requirements, unavailable entries are hidden by default, and experimental entries require an explicit filter |
@@ -80,10 +81,11 @@ The latest maintenance pass focused on making the application reliable in produc
 The repaired production build has been checked with:
 
 - ESLint with zero errors or warnings
-- 27/27 passing unit tests
+- 28/28 passing unit tests
 - Passing audit of all 111 selectable reverse/bind payloads
 - 23/23 passing isolated Linux Docker checks: 19 end-to-end sessions and 4 compiler/parser checks
 - 20/20 passing network-isolated MSFVenom checks: catalog, formats, encoders, 13 generation cases, and 4 handler configurations
+- 9/9 passing native PowerShell compatibility checks: 7 exact parser checks and 2 safe loopback capability probes
 - Successful Vite production build and static prerender
 - Successful desktop interaction test for MSFVenom LHOST updates
 - Successful mobile layout/scrolling test at a 390 × 844 viewport
@@ -238,6 +240,12 @@ npm run verify:runtime:linux
 # Run only the pinned, network-isolated MSFVenom compatibility matrix
 npm run test:runtime:msfvenom
 
+# Native Windows PowerShell parser and safe loopback capability checks
+npm run test:runtime:powershell
+
+# Production verification plus the safe PowerShell compatibility matrix
+npm run verify:runtime:powershell
+
 # Complete check plus both Linux and MSFVenom Docker matrices
 npm run verify:runtime
 ```
@@ -275,6 +283,28 @@ handler configurations without starting a listener. Docker Hub reports roughly
 715 MB of downloadable image content; Docker Desktop reports about 3.03 GB once
 unpacked locally. This is a reproducible compatibility baseline, not a claim
 that every later Metasploit release has identical names or formats.
+
+### Native PowerShell compatibility matrix
+
+`npm run test:runtime:powershell` runs on native Windows PowerShell 5.1. It
+parses the five direct reverse templates and two bind templates exactly as they
+are rendered, including the UTF-16LE Base64 variant. It also performs a harmless
+outbound data transfer over `127.0.0.1` and verifies that a loopback-only
+`TcpListener` can start and stop. No downloaded resource or remote command is
+executed by the default matrix.
+
+On the recorded Windows PowerShell 5.1.26100.9168 / Windows NT 10.0.26200.0
+host, an explicit attempt to execute the complete reverse template was blocked
+by the enabled Defender/AMSI controls with `ScriptContainedMaliciousContent`.
+Those protections were not disabled or bypassed. Consequently, the exact
+PowerShell shells remain `conditional`; the 9/9 compatibility result is not an
+end-to-end runtime-verification claim.
+
+For a dedicated, owner-controlled Windows lab VM, the optional
+`npm run test:runtime:powershell:lab` command enables the six exact loopback
+shell handshakes. It should not be used on a normal workstation, and a security
+control block is a valid environmental result rather than something the harness
+tries to evade.
 
 ---
 
@@ -362,9 +392,12 @@ web-revshell/
 ├── scripts/
 │   ├── browser.js                      # Installed-browser discovery for Puppeteer
 │   ├── prerender.js                    # Hardened static prerender workflow
+│   ├── runtime-test-linux.js           # Isolated Linux runtime matrix
+│   ├── runtime-test-msfvenom.js        # Pinned Metasploit compatibility matrix
+│   ├── runtime-test-powershell.js      # Native PowerShell compatibility/lab matrix
 │   └── verify-build.js                 # Desktop/mobile production browser checks
 ├── tests/
-│   └── core.test.js                    # Payload, metadata, Advisor, validation, and MSFVenom tests
+│   └── core.test.js                    # Payload, metadata, Advisor, validation, MSFVenom, and PowerShell tests
 ├── public/
 │   └── favicon.svg                     # App favicon
 ├── src/

