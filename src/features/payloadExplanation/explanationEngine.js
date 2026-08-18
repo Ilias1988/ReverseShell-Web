@@ -65,6 +65,7 @@ export function buildPayloadExplanation(metadata, { listenerCommand = '' } = {})
         : 'Replaced with the validated TCP/UDP port.',
     })),
     warnings: metadata.warnings,
+    verification: metadata.verification,
     workflow,
     stabilization,
     troubleshooting: metadata.explanation.troubleshooting,

@@ -12,6 +12,13 @@ import {
 import CopyButton from '../../components/ui/CopyButton'
 import { buildPayloadExplanation } from './explanationEngine'
 
+const VERIFICATION_STYLES = {
+  verified: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  conditional: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  experimental: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
+  deprecated: 'border-red-500/30 bg-red-500/10 text-red-300',
+}
+
 export default function PayloadExplanation({
   metadata,
   generatedPayload,
@@ -107,7 +114,15 @@ export default function PayloadExplanation({
                 {value}
               </span>
             ))}
+            <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold uppercase ${VERIFICATION_STYLES[explanation.verification.status]}`}>
+              {explanation.verification.status}
+            </span>
           </div>
+
+          <article className={`mb-4 rounded-xl border p-3 ${VERIFICATION_STYLES[explanation.verification.status]}`}>
+            <p className="text-sm font-semibold capitalize">Catalog confidence: {explanation.verification.status}</p>
+            <p className="mt-1 text-xs leading-relaxed opacity-80">{explanation.verification.basis}</p>
+          </article>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <article className="rounded-xl border border-dark-600 bg-dark-900/60 p-4">

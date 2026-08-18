@@ -15,7 +15,6 @@ export const MSFVENOM_PAYLOADS = {
       'linux/x64/meterpreter/reverse_tcp',
       'linux/x64/shell/bind_tcp',
       'linux/x64/meterpreter/bind_tcp',
-      'linux/x64/meterpreter/reverse_https',
     ],
     'Stageless': [
       'linux/x86/shell_reverse_tcp',
@@ -56,9 +55,8 @@ export const MSFVENOM_PAYLOADS = {
   },
   'macOS': {
     'Staged': [
-      'osx/x64/shell/reverse_tcp',
       'osx/x64/meterpreter/reverse_tcp',
-      'osx/x64/shell/bind_tcp',
+      'osx/x64/meterpreter/bind_tcp',
     ],
     'Stageless': [
       'osx/x64/shell_reverse_tcp',
@@ -104,12 +102,14 @@ export const MSFVENOM_FORMATS = {
     { value: 'exe', label: 'exe (Windows PE)' },
     { value: 'exe-small', label: 'exe-small (Minimal PE)' },
     { value: 'exe-only', label: 'exe-only (No template)' },
+    { value: 'exe-service', label: 'exe-service (Windows Service)' },
     { value: 'elf', label: 'elf (Linux ELF)' },
     { value: 'elf-so', label: 'elf-so (Shared Object)' },
     { value: 'macho', label: 'macho (macOS)' },
     { value: 'dll', label: 'dll (Windows DLL)' },
     { value: 'msi', label: 'msi (Windows Installer)' },
-    { value: 'apk', label: 'apk (Android)' },
+    { value: 'msi-nouac', label: 'msi-nouac (Windows Installer, no UAC)' },
+    { value: 'osx-app', label: 'osx-app (macOS Application Bundle)' },
   ],
   'Web': [
     { value: 'asp', label: 'asp (Classic ASP)' },
@@ -117,8 +117,8 @@ export const MSFVENOM_FORMATS = {
     { value: 'aspx-exe', label: 'aspx-exe (ASPX Wrapper)' },
     { value: 'jsp', label: 'jsp (Java Server Pages)' },
     { value: 'war', label: 'war (Java WAR)' },
-    { value: 'php', label: 'php (PHP Script)' },
-    { value: 'phtml', label: 'phtml (PHP HTML)' },
+    { value: 'jar', label: 'jar (Java Archive)' },
+    { value: 'axis2', label: 'axis2 (Axis2 Service)' },
   ],
   'Scripting': [
     { value: 'python', label: 'python (Python)' },
@@ -127,6 +127,10 @@ export const MSFVENOM_FORMATS = {
     { value: 'sh', label: 'sh (Shell Script)' },
     { value: 'powershell', label: 'powershell (PS1)' },
     { value: 'ps1', label: 'ps1 (PowerShell)' },
+    { value: 'psh', label: 'psh (PowerShell)' },
+    { value: 'psh-cmd', label: 'psh-cmd (PowerShell Command)' },
+    { value: 'psh-net', label: 'psh-net (.NET PowerShell)' },
+    { value: 'psh-reflection', label: 'psh-reflection (Reflection PowerShell)' },
     { value: 'hta-psh', label: 'hta-psh (HTA + PS)' },
     { value: 'vba', label: 'vba (Visual Basic App)' },
     { value: 'vba-exe', label: 'vba-exe (VBA Wrapper)' },
@@ -146,7 +150,6 @@ export const MSFVENOM_FORMATS = {
     { value: 'base32', label: 'base32 (Base32)' },
     { value: 'base64', label: 'base64 (Base64)' },
     { value: 'num', label: 'num (Numeric)' },
-    { value: 'powershell_base64', label: 'powershell_base64 (PS Base64)' },
   ],
 };
 
@@ -194,24 +197,26 @@ export const MSFVENOM_PLATFORMS = [
 ];
 
 const NATIVE_FORMATS = new Set([
-  'exe', 'exe-small', 'exe-only', 'dll', 'msi',
-  'elf', 'elf-so', 'macho', 'apk',
-  'asp', 'aspx', 'aspx-exe', 'jsp', 'war', 'php', 'phtml',
-  'python', 'py', 'bash', 'sh', 'powershell', 'ps1', 'hta-psh',
+  'exe', 'exe-small', 'exe-only', 'exe-service', 'dll', 'msi', 'msi-nouac',
+  'elf', 'elf-so', 'macho', 'osx-app',
+  'asp', 'aspx', 'aspx-exe', 'axis2', 'jsp', 'war', 'jar',
+  'python', 'py', 'bash', 'sh', 'powershell', 'ps1', 'psh', 'psh-cmd',
+  'psh-net', 'psh-reflection', 'hta-psh',
   'vba', 'vba-exe', 'vba-psh', 'vbs',
 ]);
 
 const PLATFORM_FORMATS = {
   windows: new Set([
-    'exe', 'exe-small', 'exe-only', 'dll', 'msi',
-    'asp', 'aspx', 'aspx-exe', 'powershell', 'ps1', 'hta-psh',
+    'exe', 'exe-small', 'exe-only', 'exe-service', 'dll', 'msi', 'msi-nouac',
+    'asp', 'aspx', 'aspx-exe', 'powershell', 'ps1', 'psh', 'psh-cmd',
+    'psh-net', 'psh-reflection', 'hta-psh',
     'vba', 'vba-exe', 'vba-psh', 'vbs',
   ]),
   linux: new Set(['elf', 'elf-so', 'bash', 'sh']),
-  osx: new Set(['macho']),
-  android: new Set(['apk']),
-  php: new Set(['php', 'phtml']),
-  java: new Set(['jsp', 'war']),
+  osx: new Set(['macho', 'osx-app']),
+  android: new Set([]),
+  php: new Set([]),
+  java: new Set(['axis2', 'jsp', 'war', 'jar']),
   python: new Set(['python', 'py']),
 };
 
@@ -335,35 +340,57 @@ export function generateMsfvenomCommand({
 }
 
 /**
+ * Classify delivery and handler requirements encoded in a Metasploit payload
+ * name. Staged payloads use slash-separated stage identifiers such as
+ * shell/reverse_tcp, while stageless payloads use shell_reverse_tcp.
+ */
+export function getMsfvenomPayloadTraits(payload = '') {
+  const direction = payload.includes('reverse')
+    ? 'reverse'
+    : payload.includes('bind')
+      ? 'bind'
+      : 'unknown';
+  const isMeterpreter = /(?:^|\/)meterpreter(?:[/_]|$)/i.test(payload);
+  const isStaged = /\/(?:shell|meterpreter)\/(?:reverse|bind)_[^/]+$/i.test(payload);
+
+  return {
+    direction,
+    isMeterpreter,
+    isStaged,
+    requiresHandler: isStaged || isMeterpreter,
+  };
+}
+
+/**
  * Get a listener command for an msfvenom payload
  */
 export function getMsfvenomListener({ payload, ip, port }) {
-  const isReverse = payload.includes('reverse');
-  const isMeterpreter = payload.includes('meterpreter');
-  if (isMeterpreter) {
-    let handler = 'exploit/multi/handler';
+  const traits = getMsfvenomPayloadTraits(payload);
+  if (traits.requiresHandler) {
     let lines = [
       `msfconsole -q -x "`,
-      `use ${handler};`,
+      'use exploit/multi/handler;',
       `set PAYLOAD ${payload};`,
     ];
 
-    if (isReverse) {
+    if (traits.direction === 'reverse') {
       lines.push(`set LHOST ${ip || '0.0.0.0'};`);
       lines.push(`set LPORT ${port || '4444'};`);
-    } else {
+    } else if (traits.direction === 'bind') {
       lines.push(`set RHOST ${ip || '10.10.10.10'};`);
       lines.push(`set LPORT ${port || '4444'};`);
     }
 
-    lines.push(`exploit"`)
+    lines.push('run"')
     return lines.join('\n');
   }
 
-  // Simple shell — use nc
-  if (isReverse) {
+  // A simple stageless command shell can be handled by Netcat.
+  if (traits.direction === 'reverse') {
     return `nc -lvnp ${port || '4444'}`;
-  } else {
+  }
+  if (traits.direction === 'bind') {
     return `nc ${ip || '10.10.10.10'} ${port || '4444'}`;
   }
+  return 'Review the selected payload documentation for its handler requirements.';
 }

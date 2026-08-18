@@ -70,10 +70,17 @@ export function applyEncoding(payload, encoding) {
  * @param {string} port - The port number to inject
  * @returns {string} The payload with placeholders replaced
  */
+function normalizeLegacyTemplateBraces(value) {
+  // The catalogs were converted from Python format strings, where each literal
+  // brace was escaped once. A single pass preserves legitimate adjacent braces
+  // that close nested language blocks.
+  return value.replaceAll('{{', '{').replaceAll('}}', '}');
+}
+
 export function injectPayloadValues(template, ip, port) {
-  const injected = template
+  const injected = normalizeLegacyTemplateBraces(template
     .replaceAll('{ip}', ip)
-    .replaceAll('{port}', port);
+    .replaceAll('{port}', port));
 
   if (injected !== template) return injected;
 
@@ -93,9 +100,9 @@ export function injectPayloadValues(template, ip, port) {
       decoded += String.fromCharCode(bytes[index] | ((bytes[index + 1] || 0) << 8));
     }
 
-    const replaced = decoded
+    const replaced = normalizeLegacyTemplateBraces(decoded
       .replaceAll('{ip}', ip)
-      .replaceAll('{port}', port);
+      .replaceAll('{port}', port));
 
     if (replaced === decoded) return template;
 

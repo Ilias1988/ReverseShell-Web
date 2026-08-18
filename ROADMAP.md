@@ -1,14 +1,18 @@
 # Web Reverse Shell Generator v2 Roadmap
 
-This document is the source of truth for the v2 development cycle. The existing
-`web-revshell` project remains the stable v1. All new work is isolated in
-`web-revshell-v2` on the `v2-development` branch.
+This document is the source of truth for the v2 development cycle. Production
+hardening is isolated on `agent/catalog-hardening` until the complete release
+checklist passes; the deployed `main` branch remains unchanged during the work.
 
 ## Stable baseline
 
-- Baseline commit: `784b44d` (`chore: preserve verified v1 baseline`)
+- Production baseline: the current `main` branch and GitHub Pages deployment
 - Dependency audit: 0 known vulnerabilities
-- Unit tests: 8/8 passing
+- Unit tests: 28/28 passing on the hardening branch
+- Catalog audit: 111/111 selectable reverse/bind entries pass
+- Linux Docker runtime matrix: 23/23 checks pass; 19 entries are end-to-end verified
+- MSFVenom Docker compatibility matrix: 20/20 checks pass against pinned Framework 6.4.0
+- Native PowerShell compatibility matrix: 9/9 safe checks pass; exact shell execution is blocked by Defender/AMSI on the recorded host
 - Production build and prerender: passing
 - Desktop and mobile browser verification: passing
 - Recovery point: the local `main` branch must remain unchanged until v2 is ready
@@ -28,7 +32,7 @@ Every phase must satisfy all of the following before it can be marked complete:
 
 ## Phase 1 — Payload metadata foundation
 
-**Status: complete.** The validated catalog currently covers all 116 selectable
+**Status: complete.** The validated catalog currently covers all 111 selectable
 reverse/bind payloads and is protected by catalog-wide unit tests.
 
 Create a normalized metadata layer without rewriting the existing payload
@@ -111,6 +115,35 @@ Add an explanation drawer for the selected payload.
 - Explanations are derived from trusted local metadata, not generated remotely.
 - Content remains usable with JavaScript-disabled prerender for SEO basics.
 - The drawer is keyboard accessible and responsive.
+
+## Production catalog hardening
+
+**Status: static hardening, representative Linux runtime testing, a pinned
+Metasploit compatibility baseline, and safe native PowerShell compatibility
+testing are complete; isolated exact Windows runtime testing is pending.**
+
+- Fixed staged and Meterpreter MSFVenom handler selection.
+- Fixed invalid doubled braces in generated C, C#, Go, and PowerShell source.
+- Corrected Bash UDP and GNU Awk runtime assumptions.
+- Removed duplicate and incomplete hosted-resource payload stubs.
+- Added capability coverage for every declared Advisor requirement.
+- Added `conditional` and `experimental` confidence states without making false runtime-verification claims.
+- Added a catalog-wide automated audit to the release verification command.
+- Added a pinned, network-isolated Debian runtime harness with unprivileged containers and resource limits.
+- Executed 19 Linux reverse/bind payloads end-to-end and 4 C/Node source checks.
+- Fixed the Ruby reverse `Bad file descriptor` bug and nested-brace corruption discovered by runtime testing.
+- Validated all 59 MSFVenom payload names, 45 formats, and 15 encoders against pinned Metasploit Framework 6.4.0.
+- Removed three nonexistent MSFVenom payload names and four unsupported output formats discovered by the matrix.
+- Added 13 representative cross-platform generation checks and four handler checks without executing payloads or starting listeners.
+- Parsed all seven direct PowerShell reverse/bind templates with Windows PowerShell 5.1 and added safe outbound/bind loopback capability probes.
+- Confirmed that Defender/AMSI blocks exact reverse-shell execution on the recorded workstation; no protection was disabled or bypassed and no PowerShell payload was promoted to `verified`.
+
+Native runtime verification remains pending for non-PowerShell Windows entries
+and for exact PowerShell execution inside a dedicated lab VM. The pinned
+Metasploit matrix proves catalog and command compatibility for its recorded
+version; it does not execute the generated artifacts. A payload must not be
+promoted to `verified` until its environment, verification date, and test source
+are recorded.
 
 ## Phase 4 — Favorites, history, presets, and sharing
 
