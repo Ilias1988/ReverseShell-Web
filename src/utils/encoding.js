@@ -71,11 +71,10 @@ export function applyEncoding(payload, encoding) {
  * @returns {string} The payload with placeholders replaced
  */
 function normalizeLegacyTemplateBraces(value) {
-  let normalized = value;
-  while (normalized.includes('{{') || normalized.includes('}}')) {
-    normalized = normalized.replaceAll('{{', '{').replaceAll('}}', '}');
-  }
-  return normalized;
+  // The catalogs were converted from Python format strings, where each literal
+  // brace was escaped once. A single pass preserves legitimate adjacent braces
+  // that close nested language blocks.
+  return value.replaceAll('{{', '{').replaceAll('}}', '}');
 }
 
 export function injectPayloadValues(template, ip, port) {

@@ -15,6 +15,8 @@
     "lint": "eslint .",
     "test": "node --test tests/core.test.js",
     "audit:catalog": "node scripts/audit-payload-catalog.js",
+    "test:runtime:linux": "node scripts/runtime-test-linux.js",
+    "verify:runtime:linux": "npm run verify && npm run test:runtime:linux",
     "verify": "npm run lint && npm run test && npm run audit:catalog && npm run build && node scripts/verify-build.js",
     "preview": "vite preview",
     "predeploy": "npm run build",

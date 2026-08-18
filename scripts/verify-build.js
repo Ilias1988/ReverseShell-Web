@@ -111,7 +111,7 @@ try {
     '[data-testid="payload-verification-status"]',
     element => element.textContent,
   )
-  if (!confidenceText.includes('conditional') || !confidenceText.includes('runtime behavior depends')) {
+  if (!confidenceText.includes('verified') || !confidenceText.includes('Executed end-to-end')) {
     throw new Error('Selected payload does not expose its catalog confidence')
   }
 
@@ -124,7 +124,7 @@ try {
   if (
     !explanationText.includes('Runtime requirements')
     || !explanationText.includes('Guided workflow')
-    || !explanationText.includes('Catalog confidence: conditional')
+    || !explanationText.includes('Catalog confidence: verified')
   ) {
     throw new Error('Payload explanation is missing required guidance sections')
   }

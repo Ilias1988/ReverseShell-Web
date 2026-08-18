@@ -23,8 +23,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['Cascadia Code', 'Fira Code', 'Consolas', 'Liberation Mono', 'monospace'],
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',

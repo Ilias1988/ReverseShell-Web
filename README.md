@@ -59,8 +59,10 @@ The latest maintenance pass focused on making the application reliable in produc
 | **PowerShell payloads** | Fixed `{ip}` and `{port}` substitution inside UTF-16LE PowerShell `-EncodedCommand` payloads before re-encoding |
 | **MSFVenom generator** | Added editable LHOST/RHOST and LPORT controls, automatic valid payload selection, format/platform/architecture/encoder compatibility checks, and safer argument quoting |
 | **Payload catalog** | Removed invalid webshell-style generator entries from selectable command payloads and corrected duplicate/incorrect MSFVenom entries |
-| **Catalog hardening** | Added a catalog-wide audit for unresolved placeholders, duplicate templates, legacy doubled braces, metadata validity, and Advisor capability coverage |
+| **Catalog hardening** | Added a catalog-wide audit for unresolved placeholders, duplicate templates, metadata validity, and Advisor capability coverage |
 | **Generated source** | Fixed legacy doubled-brace output that could make generated C, C#, Go, and PowerShell source invalid |
+| **Docker runtime matrix** | Added isolated end-to-end Linux reverse/bind checks plus C and Node.js syntax validation; fixed a Ruby file-descriptor bug and a nested-brace normalization bug found by the matrix |
+| **Offline reliability** | Removed runtime Google Fonts requests; the production UI now uses local system font stacks without a third-party network dependency |
 | **MSFVenom handlers** | Staged command shells and all Meterpreter payloads now generate `exploit/multi/handler`; Netcat is reserved for simple stageless command shells |
 | **Advisor accuracy** | Capabilities are derived from the real payload requirements, unavailable entries are hidden by default, and experimental entries require an explicit filter |
 | **Catalog scope** | Removed duplicate or delivery-only entries that depended on an unspecified hosted file; retained advanced entries with visible requirements and warnings |
@@ -77,8 +79,9 @@ The latest maintenance pass focused on making the application reliable in produc
 The repaired production build has been checked with:
 
 - ESLint with zero errors or warnings
-- 24/24 passing unit tests
+- 26/26 passing unit tests
 - Passing audit of all 111 selectable reverse/bind payloads
+- 23/23 passing isolated Linux Docker checks: 19 end-to-end sessions and 4 compiler/parser checks
 - Successful Vite production build and static prerender
 - Successful desktop interaction test for MSFVenom LHOST updates
 - Successful mobile layout/scrolling test at a 390 × 844 viewport
@@ -86,7 +89,7 @@ The repaired production build has been checked with:
 
 ### Catalog confidence levels
 
-- **Verified** — reserved for a payload executed successfully in a recorded test environment. The current release intentionally contains no payload with this label yet.
+- **Verified** — executed successfully in a recorded test environment. The catalog currently contains 19 Linux entries verified on the pinned Debian Docker matrix.
 - **Conditional** — the template, placeholders, and requirements passed static review, but behavior still depends on the target OS, binary implementation, version, firewall, and network path.
 - **Experimental** — uncommon, compiled, external-resource, or LOLBAS-style payload. Hidden by default in the Advisor and intended for deliberate lab validation.
 - **Deprecated** — retained only for compatibility and not recommended. There are currently no selectable deprecated entries.
@@ -226,9 +229,25 @@ npm run audit:catalog
 
 # Complete check: lint + tests + production build + prerender + browser E2E
 npm run verify
+
+# Complete check plus the isolated Linux Docker runtime matrix
+npm run verify:runtime:linux
 ```
 
 `npm run verify` uses a headless browser to confirm that the production build remains interactive on desktop and that the generated-payload panel is visible and scrollable on mobile.
+
+### Isolated Linux runtime matrix
+
+`npm run test:runtime:linux` builds a local test image from the pinned official
+`debian:bookworm-slim@sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241`
+base. Test containers run as an unprivileged user with all Linux capabilities
+dropped, `no-new-privileges`, resource limits, and `--network none`. Reverse and
+bind sessions communicate only through `127.0.0.1` inside each container.
+
+The matrix executes Bash, GNU Awk, Netcat/Ncat, Python, Perl, PHP, Ruby, and
+Socat TCP/UDP entries end-to-end. C reverse/bind sources are checked with GCC,
+and Node.js reverse/bind sources are parsed with `node --check`. A syntax-only
+result is not promoted to runtime-verified status.
 
 ---
 

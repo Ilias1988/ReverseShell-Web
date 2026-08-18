@@ -8,8 +8,9 @@ checklist passes; the deployed `main` branch remains unchanged during the work.
 
 - Production baseline: the current `main` branch and GitHub Pages deployment
 - Dependency audit: 0 known vulnerabilities
-- Unit tests: 24/24 passing on the hardening branch
+- Unit tests: 26/26 passing on the hardening branch
 - Catalog audit: 111/111 selectable reverse/bind entries pass
+- Linux Docker runtime matrix: 23/23 checks pass; 19 entries are end-to-end verified
 - Production build and prerender: passing
 - Desktop and mobile browser verification: passing
 - Recovery point: the local `main` branch must remain unchanged until v2 is ready
@@ -115,7 +116,8 @@ Add an explanation drawer for the selected payload.
 
 ## Production catalog hardening
 
-**Status: static hardening complete; runtime matrix pending.**
+**Status: static hardening and representative Linux runtime matrix complete;
+Windows and Metasploit runtime matrices pending.**
 
 - Fixed staged and Meterpreter MSFVenom handler selection.
 - Fixed invalid doubled braces in generated C, C#, Go, and PowerShell source.
@@ -124,10 +126,13 @@ Add an explanation drawer for the selected payload.
 - Added capability coverage for every declared Advisor requirement.
 - Added `conditional` and `experimental` confidence states without making false runtime-verification claims.
 - Added a catalog-wide automated audit to the release verification command.
+- Added a pinned, network-isolated Debian runtime harness with unprivileged containers and resource limits.
+- Executed 19 Linux reverse/bind payloads end-to-end and 4 C/Node source checks.
+- Fixed the Ruby reverse `Bad file descriptor` bug and nested-brace corruption discovered by runtime testing.
 
-Runtime verification remains pending for representative Linux, Windows, Ncat,
-Netcat, PowerShell, and Metasploit environments. A payload must not be promoted
-to `verified` until its environment and verification date are recorded.
+Runtime verification remains pending for Windows, PowerShell-on-Windows, and
+Metasploit environments. A payload must not be promoted to `verified` until its
+environment, verification date, and test source are recorded.
 
 ## Phase 4 — Favorites, history, presets, and sharing
 

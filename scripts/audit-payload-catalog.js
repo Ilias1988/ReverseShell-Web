@@ -2,6 +2,7 @@ import LINUX_PAYLOADS from '../src/data/payloadsLinux.js'
 import WINDOWS_PAYLOADS from '../src/data/payloadsWindows.js'
 import BIND_LINUX_PAYLOADS from '../src/data/payloadsBindLinux.js'
 import BIND_WINDOWS_PAYLOADS from '../src/data/payloadsBindWindows.js'
+import { getPayloadMetadataOverrides } from '../src/data/payloadMetadataOverrides.js'
 import {
   buildPayloadCatalog,
   getSelectablePayloadNames,
@@ -14,10 +15,10 @@ import {
 import { injectPayloadValues } from '../src/utils/encoding.js'
 
 const SOURCES = [
-  { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
-  { payloads: WINDOWS_PAYLOADS, os: 'Windows', mode: 'reverse' },
-  { payloads: BIND_LINUX_PAYLOADS, os: 'Linux', mode: 'bind' },
-  { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind' },
+  { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse', overrides: getPayloadMetadataOverrides('Linux', 'reverse') },
+  { payloads: WINDOWS_PAYLOADS, os: 'Windows', mode: 'reverse', overrides: getPayloadMetadataOverrides('Windows', 'reverse') },
+  { payloads: BIND_LINUX_PAYLOADS, os: 'Linux', mode: 'bind', overrides: getPayloadMetadataOverrides('Linux', 'bind') },
+  { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind', overrides: getPayloadMetadataOverrides('Windows', 'bind') },
 ]
 
 function inspectTemplate(template) {
@@ -59,9 +60,6 @@ for (const payload of catalog) {
   }
 
   const rendered = injectPayloadValues(payload.template, '192.0.2.10', '4444')
-  if (rendered.includes('{{') || rendered.includes('}}')) {
-    errors.push(`${payload.id}: rendered output contains legacy doubled braces`)
-  }
   if (rendered.includes('{ip}') || rendered.includes('{port}')) {
     errors.push(`${payload.id}: rendered output contains unresolved placeholders`)
   }

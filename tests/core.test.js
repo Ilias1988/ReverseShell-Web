@@ -29,6 +29,10 @@ import WINDOWS_PAYLOADS from '../src/data/payloadsWindows.js'
 import BIND_LINUX_PAYLOADS from '../src/data/payloadsBindLinux.js'
 import BIND_WINDOWS_PAYLOADS from '../src/data/payloadsBindWindows.js'
 import {
+  getPayloadMetadataOverrides,
+  VERIFIED_LINUX_RUNTIME_PAYLOADS,
+} from '../src/data/payloadMetadataOverrides.js'
+import {
   buildPayloadCatalog,
   buildPayloadMetadata,
   inferPayloadCategory,
@@ -66,7 +70,7 @@ test('injects placeholders inside PowerShell EncodedCommand payloads', () => {
   assert.equal(decoded, '$client.Connect("192.0.2.10",4444)')
 })
 
-test('normalizes legacy Python format-string braces in generated source payloads', () => {
+test('normalizes legacy Python format-string braces once without collapsing nested blocks', () => {
   const renderedC = injectPayloadValues(LINUX_PAYLOADS.C, '192.0.2.10', '4444')
   const renderedCSharp = injectPayloadValues(
     LINUX_PAYLOADS['C# TCP Client'],
@@ -74,13 +78,16 @@ test('normalizes legacy Python format-string braces in generated source payloads
     '4444',
   )
   const renderedGo = injectPayloadValues(LINUX_PAYLOADS.Golang, '192.0.2.10', '4444')
+  const renderedBindGo = injectPayloadValues(
+    BIND_LINUX_PAYLOADS['Golang Bind'],
+    '192.0.2.10',
+    '4444',
+  )
 
-  for (const rendered of [renderedC, renderedCSharp, renderedGo]) {
-    assert.doesNotMatch(rendered, /\{\{|\}\}/)
-  }
   assert.match(renderedC, /int main\(void\)\{/)
   assert.match(renderedCSharp, /namespace ConnectBack \{/)
   assert.match(renderedGo, /func main\(\)\{/)
+  assert.match(renderedBindGo, /c\.Write\(out\)\}\}/)
 })
 
 test('validates hosts and ports before payload generation', () => {
@@ -264,6 +271,12 @@ test('uses the runtime required by Bash UDP and GNU Awk network payloads', () =>
   assert.match(awkMetadata.warnings.join(' '), /GNU Awk/)
 })
 
+test('keeps the Ruby reverse socket open across exec', () => {
+  assert.match(LINUX_PAYLOADS['Ruby #1'], /\$stdin\.reopen\(c\)/)
+  assert.match(LINUX_PAYLOADS['Ruby #1'], /\$stdout\.reopen\(c\)/)
+  assert.doesNotMatch(LINUX_PAYLOADS['Ruby #1'], /\.to_i/)
+})
+
 test('classifies uncommon compiler payloads as experimental without claiming runtime verification', () => {
   assert.equal(inferPayloadVerification({ category: 'C' }).status, 'experimental')
   assert.equal(inferPayloadVerification({ category: 'Bash' }).status, 'conditional')
@@ -285,6 +298,34 @@ test('classifies uncommon compiler payloads as experimental without claiming run
 
   assert.equal(metadata.verification.status, 'verified')
   assert.deepEqual(validatePayloadMetadata(metadata), [])
+})
+
+test('records only end-to-end Docker cases as runtime verified', () => {
+  const catalog = buildPayloadCatalog([
+    {
+      payloads: LINUX_PAYLOADS,
+      os: 'Linux',
+      mode: 'reverse',
+      overrides: getPayloadMetadataOverrides('Linux', 'reverse'),
+    },
+    {
+      payloads: BIND_LINUX_PAYLOADS,
+      os: 'Linux',
+      mode: 'bind',
+      overrides: getPayloadMetadataOverrides('Linux', 'bind'),
+    },
+  ])
+  const verified = catalog.filter(payload => payload.verification.status === 'verified')
+  const expectedCount = VERIFIED_LINUX_RUNTIME_PAYLOADS.reverse.length
+    + VERIFIED_LINUX_RUNTIME_PAYLOADS.bind.length
+
+  assert.equal(verified.length, expectedCount)
+  assert.ok(verified.every(payload => payload.verification.lastVerified === '2026-08-18'))
+  assert.ok(verified.every(payload => payload.verification.testedOn.length > 0))
+  assert.equal(
+    catalog.find(payload => payload.name === 'C')?.verification.status,
+    'experimental',
+  )
 })
 
 test('offers at least one selectable capability for every catalog requirement', () => {
