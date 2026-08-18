@@ -8,9 +8,10 @@ checklist passes; the deployed `main` branch remains unchanged during the work.
 
 - Production baseline: the current `main` branch and GitHub Pages deployment
 - Dependency audit: 0 known vulnerabilities
-- Unit tests: 26/26 passing on the hardening branch
+- Unit tests: 27/27 passing on the hardening branch
 - Catalog audit: 111/111 selectable reverse/bind entries pass
 - Linux Docker runtime matrix: 23/23 checks pass; 19 entries are end-to-end verified
+- MSFVenom Docker compatibility matrix: 20/20 checks pass against pinned Framework 6.4.0
 - Production build and prerender: passing
 - Desktop and mobile browser verification: passing
 - Recovery point: the local `main` branch must remain unchanged until v2 is ready
@@ -116,8 +117,9 @@ Add an explanation drawer for the selected payload.
 
 ## Production catalog hardening
 
-**Status: static hardening and representative Linux runtime matrix complete;
-Windows and Metasploit runtime matrices pending.**
+**Status: static hardening, representative Linux runtime testing, and a pinned
+Metasploit compatibility baseline are complete; native Windows runtime testing
+is pending.**
 
 - Fixed staged and Meterpreter MSFVenom handler selection.
 - Fixed invalid doubled braces in generated C, C#, Go, and PowerShell source.
@@ -129,10 +131,15 @@ Windows and Metasploit runtime matrices pending.**
 - Added a pinned, network-isolated Debian runtime harness with unprivileged containers and resource limits.
 - Executed 19 Linux reverse/bind payloads end-to-end and 4 C/Node source checks.
 - Fixed the Ruby reverse `Bad file descriptor` bug and nested-brace corruption discovered by runtime testing.
+- Validated all 59 MSFVenom payload names, 45 formats, and 15 encoders against pinned Metasploit Framework 6.4.0.
+- Removed three nonexistent MSFVenom payload names and four unsupported output formats discovered by the matrix.
+- Added 13 representative cross-platform generation checks and four handler checks without executing payloads or starting listeners.
 
-Runtime verification remains pending for Windows, PowerShell-on-Windows, and
-Metasploit environments. A payload must not be promoted to `verified` until its
-environment, verification date, and test source are recorded.
+Native runtime verification remains pending for Windows and
+PowerShell-on-Windows. The pinned Metasploit matrix proves catalog and command
+compatibility for its recorded version; it does not execute the generated
+artifacts. A payload must not be promoted to `verified` until its environment,
+verification date, and test source are recorded.
 
 ## Phase 4 — Favorites, history, presets, and sharing
 

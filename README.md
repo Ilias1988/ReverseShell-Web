@@ -26,7 +26,7 @@ A modern, browser-based shell payload generator built with **React**, **Vite**, 
 |---------|-------------|
 | 🎨 **Dark Mode UI** | Sleek, professional dark theme optimized for long hacking sessions |
 | 🔀 **3 Mode Tabs** | **Reverse Shell**, **Bind Shell**, and **MSFVenom** generator in one tool |
-| 📚 **170+ Options** | 111 audited reverse/bind payloads plus 60+ MSFVenom payload options |
+| 📚 **170 Options** | 111 audited reverse/bind payloads plus 59 MSFVenom payload options |
 | 🐚 **Shell Selector** | Choose shell binary (sh, bash, zsh, dash, ash, ksh, cmd.exe, powershell.exe, etc.) |
 | 💀 **MSFVenom Generator** | Full command builder with payloads, formats, encoders, arch, platform, bad chars |
 | ✨ **Smart Payload Advisor** | Rank payloads by transport, family, and binaries known to exist on the target |
@@ -62,6 +62,7 @@ The latest maintenance pass focused on making the application reliable in produc
 | **Catalog hardening** | Added a catalog-wide audit for unresolved placeholders, duplicate templates, metadata validity, and Advisor capability coverage |
 | **Generated source** | Fixed legacy doubled-brace output that could make generated C, C#, Go, and PowerShell source invalid |
 | **Docker runtime matrix** | Added isolated end-to-end Linux reverse/bind checks plus C and Node.js syntax validation; fixed a Ruby file-descriptor bug and a nested-brace normalization bug found by the matrix |
+| **MSFVenom compatibility matrix** | Validated every catalog payload, output format, and encoder against pinned Metasploit Framework 6.4.0; added representative cross-platform generation and handler checks |
 | **Offline reliability** | Removed runtime Google Fonts requests; the production UI now uses local system font stacks without a third-party network dependency |
 | **MSFVenom handlers** | Staged command shells and all Meterpreter payloads now generate `exploit/multi/handler`; Netcat is reserved for simple stageless command shells |
 | **Advisor accuracy** | Capabilities are derived from the real payload requirements, unavailable entries are hidden by default, and experimental entries require an explicit filter |
@@ -79,9 +80,10 @@ The latest maintenance pass focused on making the application reliable in produc
 The repaired production build has been checked with:
 
 - ESLint with zero errors or warnings
-- 26/26 passing unit tests
+- 27/27 passing unit tests
 - Passing audit of all 111 selectable reverse/bind payloads
 - 23/23 passing isolated Linux Docker checks: 19 end-to-end sessions and 4 compiler/parser checks
+- 20/20 passing network-isolated MSFVenom checks: catalog, formats, encoders, 13 generation cases, and 4 handler configurations
 - Successful Vite production build and static prerender
 - Successful desktop interaction test for MSFVenom LHOST updates
 - Successful mobile layout/scrolling test at a 390 × 844 viewport
@@ -108,10 +110,10 @@ The target **listens** on a port and the attacker **connects to** the target. Us
 
 ### 💀 MSFVenom
 Full **MSFVenom command generator** with:
-- **60+ payloads** across Linux, Windows, macOS, Web (PHP/Java/Python), and Android
+- **59 payloads** across Linux, Windows, macOS, Web (PHP/Java/Python), and Android
 - **Staged & Stageless** payload types
-- **30+ output formats** (exe, elf, dll, aspx, war, php, python, powershell, c, csharp, raw, hex, base64, etc.)
-- **15+ encoders** (shikata_ga_nai, xor_dynamic, xor, and more)
+- **45 output formats** validated against the pinned compatibility baseline
+- **15 encoders** (shikata_ga_nai, xor_dynamic, xor, and more)
 - **Architecture** selection (x86, x64, ARM, MIPS)
 - **Platform** selection
 - **Bad characters**, **NOP sled**, **iterations**, **output file**
@@ -172,7 +174,7 @@ Dynamically swap the shell binary used in every payload:
 - **Languages:** Python, Ruby, Perl, PHP, Node.js, Lua, Golang
 - **Compiled:** C# bind shell
 
-### MSFVenom (60+ payload options)
+### MSFVenom (59 payload options)
 - **Linux:** x86/x64 shell & meterpreter (staged + stageless)
 - **Windows:** x86/x64 shell & meterpreter (staged + stageless, HTTP/HTTPS)
 - **macOS:** x64 shell & meterpreter
@@ -232,6 +234,12 @@ npm run verify
 
 # Complete check plus the isolated Linux Docker runtime matrix
 npm run verify:runtime:linux
+
+# Run only the pinned, network-isolated MSFVenom compatibility matrix
+npm run test:runtime:msfvenom
+
+# Complete check plus both Linux and MSFVenom Docker matrices
+npm run verify:runtime
 ```
 
 `npm run verify` uses a headless browser to confirm that the production build remains interactive on desktop and that the generated-payload panel is visible and scrollable on mobile.
@@ -248,6 +256,25 @@ The matrix executes Bash, GNU Awk, Netcat/Ncat, Python, Perl, PHP, Ruby, and
 Socat TCP/UDP entries end-to-end. C reverse/bind sources are checked with GCC,
 and Node.js reverse/bind sources are parsed with `node --check`. A syntax-only
 result is not promoted to runtime-verified status.
+
+### Isolated MSFVenom compatibility matrix
+
+`npm run test:runtime:msfvenom` uses the pinned official Metasploit Framework
+6.4.0 image at
+`metasploitframework/metasploit-framework@sha256:ba9ecc0172052ea687adb3b3e6356b24dba4497d1bf73a6de0e201f1e25e9777`.
+The container has no network access, uses a read-only root filesystem and a
+temporary `/tmp`, and is constrained by CPU, memory, and process limits. The
+test commands also run with `no-new-privileges`. The legacy image cannot start
+with every Linux capability dropped, so that stronger restriction is not
+claimed here. No generated payload is ever executed.
+
+The matrix checks all 59 catalog payload names, all 45 output formats, and all
+15 encoders against the pinned framework. It also generates 13 representative
+Linux, Windows, macOS, PHP, Java, Python, and Android artifacts, and loads four
+handler configurations without starting a listener. Docker Hub reports roughly
+715 MB of downloadable image content; Docker Desktop reports about 3.03 GB once
+unpacked locally. This is a reproducible compatibility baseline, not a claim
+that every later Metasploit release has identical names or formats.
 
 ---
 
@@ -353,8 +380,8 @@ web-revshell/
 │   │       ├── explanationEngine.js    # Structured local payload explanations
 │   │       └── PayloadExplanation.jsx  # Accessible explanation and workflow dialog
 │   ├── data/
-│   │   ├── payloadsLinux.js            # 60+ Linux reverse shell payloads
-│   │   ├── payloadsWindows.js          # 30+ Windows reverse shell payloads
+│   │   ├── payloadsLinux.js            # 55 Linux reverse shell payloads
+│   │   ├── payloadsWindows.js          # 24 Windows reverse shell payloads
 │   │   ├── payloadsBindLinux.js        # 18 Linux bind shell payloads
 │   │   ├── payloadsBindWindows.js      # 14 Windows bind shell payloads
 │   │   ├── shells.js                   # Shell binary options (sh, bash, zsh, etc.)
@@ -434,7 +461,7 @@ Every new selectable payload must also pass `npm run audit:catalog`. Add explici
 |---------|:-:|:-:|
 | Reverse Shell Payloads | 90+ | 90+ |
 | **Bind Shell Payloads** | ❌ | ✅ **32** |
-| **MSFVenom Generator** | ❌ | ✅ **60+ payloads** |
+| **MSFVenom Generator** | ❌ | ✅ **59 payloads** |
 | **Shell Selector** | ❌ | ✅ **15 shells** |
 | **Category Filter** | ❌ | ✅ |
 | **Mode Tabs** (Reverse/Bind/MSFVenom) | ❌ | ✅ |

@@ -17,6 +17,8 @@ import {
   supportsShellOverride,
 } from '../src/utils/shells.js'
 import {
+  MSFVENOM_ENCODERS,
+  MSFVENOM_FORMATS,
   MSFVENOM_PAYLOADS,
   generateMsfvenomCommand,
   getMsfvenomCompatibilityErrors,
@@ -124,11 +126,34 @@ test('MSFVenom catalog contains no duplicate payload entries', () => {
   const payloads = Object.values(MSFVENOM_PAYLOADS)
     .flatMap(category => Object.values(category).flat())
   assert.equal(new Set(payloads).size, payloads.length)
+  assert.equal(payloads.includes('linux/x64/meterpreter/reverse_https'), false)
+  assert.equal(payloads.includes('osx/x64/shell/reverse_tcp'), false)
+  assert.ok(payloads.includes('osx/x64/meterpreter/bind_tcp'))
+})
+
+test('MSFVenom formats and encoders match the pinned compatibility baseline', () => {
+  const formats = Object.values(MSFVENOM_FORMATS)
+    .flat()
+    .map(format => format.value)
+  const encoders = MSFVENOM_ENCODERS
+    .map(encoder => encoder.value)
+    .filter(Boolean)
+
+  assert.equal(formats.length, 45)
+  assert.equal(new Set(formats).size, formats.length)
+  assert.equal(encoders.length, 15)
+  assert.equal(new Set(encoders).size, encoders.length)
+
+  for (const invalidFormat of ['apk', 'php', 'phtml', 'powershell_base64']) {
+    assert.equal(formats.includes(invalidFormat), false)
+  }
 })
 
 test('rejects incompatible MSFVenom combinations', () => {
   assert.equal(isFormatCompatible('windows/x64/meterpreter_reverse_tcp', 'exe'), true)
   assert.equal(isFormatCompatible('windows/x64/meterpreter_reverse_tcp', 'elf'), false)
+  assert.equal(isFormatCompatible('php/meterpreter_reverse_tcp', 'raw'), true)
+  assert.equal(isFormatCompatible('android/meterpreter/reverse_tcp', 'raw'), true)
   assert.match(
     getMsfvenomCompatibilityErrors({
       payload: 'windows/x64/meterpreter_reverse_tcp',
