@@ -32,19 +32,11 @@ const STATUS_STYLES = {
   },
 }
 
-const VERIFICATION_STYLES = {
-  verified: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-  conditional: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  experimental: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
-  deprecated: 'border-red-500/30 bg-red-500/10 text-red-300',
-}
-
 export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) {
   const closeButtonRef = useRef(null)
   const dialogRef = useRef(null)
   const [transport, setTransport] = useState('any')
   const [category, setCategory] = useState('Any')
-  const [maturity, setMaturity] = useState('recommended')
   const [capabilities, setCapabilities] = useState([])
   const [showUnavailable, setShowUnavailable] = useState(false)
 
@@ -57,8 +49,8 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
     [catalog],
   )
   const recommendations = useMemo(
-    () => rankPayloads(catalog, { transport, category, capabilities, maturity }),
-    [catalog, transport, category, capabilities, maturity],
+    () => rankPayloads(catalog, { transport, category, capabilities }),
+    [catalog, transport, category, capabilities],
   )
   const unavailableCount = recommendations.filter(
     recommendation => recommendation.status === 'unavailable',
@@ -112,7 +104,6 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
   const resetFilters = () => {
     setTransport('any')
     setCategory('Any')
-    setMaturity('recommended')
     setCapabilities([])
     setShowUnavailable(false)
   }
@@ -195,22 +186,6 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
                 {categories.map(option => (
                   <option key={option} value={option}>{option}</option>
                 ))}
-              </select>
-            </div>
-
-            <div className="mb-5">
-              <label htmlFor="advisor-maturity" className="mb-2 block text-sm font-semibold text-gray-200">
-                Catalog confidence
-              </label>
-              <select
-                id="advisor-maturity"
-                value={maturity}
-                onChange={event => setMaturity(event.target.value)}
-                className="input-field"
-              >
-                <option value="recommended">Recommended (hide experimental)</option>
-                <option value="verified">Runtime verified only</option>
-                <option value="all">Include experimental</option>
               </select>
             </div>
 
@@ -317,9 +292,6 @@ export default function PayloadAdvisor({ catalog, os, mode, onApply, onClose }) 
                             </span>
                             <span className="rounded-md border border-dark-600 px-2 py-0.5 text-[10px] uppercase text-dark-300">
                               {recommendation.payload.transport}
-                            </span>
-                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase ${VERIFICATION_STYLES[recommendation.payload.verification.status]}`}>
-                              {recommendation.payload.verification.status}
                             </span>
                           </div>
                           <p className="text-sm text-dark-200">{recommendation.reasons[0]}</p>

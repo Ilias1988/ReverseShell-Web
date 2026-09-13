@@ -74,7 +74,12 @@ try {
     if (message.type() !== 'error') return
     const location = message.location()
     const source = location.url ? ` (${location.url})` : ''
-    runtimeErrors.push(message.text() + source)
+    const renderedMessage = message.text() + source
+    const isBlockedCloudflareTelemetry = (
+      renderedMessage.includes('net::ERR_NETWORK_ACCESS_DENIED')
+      && renderedMessage.includes('static.cloudflareinsights.com/beacon.min.js')
+    )
+    if (!isBlockedCloudflareTelemetry) runtimeErrors.push(renderedMessage)
   })
 
   await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 })
@@ -85,13 +90,6 @@ try {
     if (!await page.$(`[data-advisor-capability="${capability}"]`)) {
       throw new Error(`Smart Payload Advisor is missing the ${capability} capability`)
     }
-  }
-  const confidenceOptions = await page.$$eval(
-    '#advisor-maturity option',
-    options => options.map(option => option.value),
-  )
-  if (!confidenceOptions.includes('recommended') || !confidenceOptions.includes('all')) {
-    throw new Error('Smart Payload Advisor is missing catalog-confidence filters')
   }
   await page.click('[data-advisor-capability="bash"]')
 
@@ -107,14 +105,6 @@ try {
   await firstAdvisorAction.click()
   await page.waitForSelector('[data-testid="payload-advisor-dialog"]', { hidden: true })
 
-  const confidenceText = await page.$eval(
-    '[data-testid="payload-verification-status"]',
-    element => element.textContent,
-  )
-  if (!confidenceText.includes('verified') || !confidenceText.includes('Executed end-to-end')) {
-    throw new Error('Selected payload does not expose its catalog confidence')
-  }
-
   await page.click('#open-payload-explanation')
   await page.waitForSelector('[data-testid="payload-explanation-dialog"]')
   const explanationText = await page.$eval(
@@ -124,7 +114,6 @@ try {
   if (
     !explanationText.includes('Runtime requirements')
     || !explanationText.includes('Guided workflow')
-    || !explanationText.includes('Catalog confidence: verified')
   ) {
     throw new Error('Payload explanation is missing required guidance sections')
   }

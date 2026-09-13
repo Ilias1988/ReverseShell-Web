@@ -1,0 +1,25 @@
+export const LINUX_RUNTIME_TEST_PAYLOADS = {
+  reverse: [
+    'Bash -i',
+    'Bash udp',
+    'nc mkfifo',
+    'ncat -e',
+    'ncat udp',
+    'Awk',
+    'Python3 #1',
+    'Perl',
+    'PHP Ivan Sincek',
+    'Ruby #1',
+    'socat #1',
+  ],
+  bind: [
+    'nc mkfifo Bind',
+    'ncat Bind',
+    'socat Bind',
+    'Python3 Bind',
+    'Perl Bind',
+    'PHP Bind',
+    'Ruby Bind',
+    'Awk Bind',
+  ],
+}

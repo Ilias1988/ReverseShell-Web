@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import LINUX_PAYLOADS from '../src/data/payloadsLinux.js'
 import BIND_LINUX_PAYLOADS from '../src/data/payloadsBindLinux.js'
-import { VERIFIED_LINUX_RUNTIME_PAYLOADS } from '../src/data/payloadMetadataOverrides.js'
+import { LINUX_RUNTIME_TEST_PAYLOADS } from '../tests/runtime/linuxPayloadCases.js'
 import { injectPayloadValues } from '../src/utils/encoding.js'
 
 const IMAGE = 'web-revshell-runtime-linux:bookworm'
@@ -176,11 +176,11 @@ runDocker([
   'tests/runtime',
 ], { timeout: 600000 })
 
-VERIFIED_LINUX_RUNTIME_PAYLOADS.reverse.forEach((name, index) => {
+LINUX_RUNTIME_TEST_PAYLOADS.reverse.forEach((name, index) => {
   runCase(`reverse: ${name}`, () => runReversePayload(name, 43100 + index))
 })
 
-VERIFIED_LINUX_RUNTIME_PAYLOADS.bind.forEach((name, index) => {
+LINUX_RUNTIME_TEST_PAYLOADS.bind.forEach((name, index) => {
   runCase(`bind: ${name}`, () => runBindPayload(name, 43200 + index))
 })
 

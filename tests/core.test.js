@@ -31,14 +31,9 @@ import WINDOWS_PAYLOADS from '../src/data/payloadsWindows.js'
 import BIND_LINUX_PAYLOADS from '../src/data/payloadsBindLinux.js'
 import BIND_WINDOWS_PAYLOADS from '../src/data/payloadsBindWindows.js'
 import {
-  getPayloadMetadataOverrides,
-  VERIFIED_LINUX_RUNTIME_PAYLOADS,
-} from '../src/data/payloadMetadataOverrides.js'
-import {
   buildPayloadCatalog,
   buildPayloadMetadata,
   inferPayloadCategory,
-  inferPayloadVerification,
   validatePayloadMetadata,
 } from '../src/features/payloadAdvisor/payloadMetadata.js'
 import {
@@ -310,7 +305,6 @@ test('builds valid metadata for every selectable reverse and bind payload', () =
   assert.equal(catalog.some(item => item.name === 'PowerShell #5 (IEX)'), false)
   assert.equal(catalog.some(item => item.name === 'Mshta'), false)
   assert.equal(catalog.some(item => item.name === 'Regsvr32'), false)
-  assert.ok(catalog.every(item => item.verification?.status))
 })
 
 test('uses the runtime required by Bash UDP and GNU Awk network payloads', () => {
@@ -332,57 +326,6 @@ test('keeps the Ruby reverse socket open across exec', () => {
   assert.match(LINUX_PAYLOADS['Ruby #1'], /\$stdin\.reopen\(c\)/)
   assert.match(LINUX_PAYLOADS['Ruby #1'], /\$stdout\.reopen\(c\)/)
   assert.doesNotMatch(LINUX_PAYLOADS['Ruby #1'], /\.to_i/)
-})
-
-test('classifies uncommon compiler payloads as experimental without claiming runtime verification', () => {
-  assert.equal(inferPayloadVerification({ category: 'C' }).status, 'experimental')
-  assert.equal(inferPayloadVerification({ category: 'Bash' }).status, 'conditional')
-
-  const metadata = buildPayloadMetadata({
-    name: 'Runtime verified sample',
-    template: 'bash -c "echo {ip} {port}"',
-    os: 'Linux',
-    mode: 'reverse',
-    overrides: {
-      verification: {
-        status: 'verified',
-        basis: 'Executed in a controlled test fixture.',
-        lastVerified: '2026-08-18',
-        testedOn: ['test-fixture'],
-      },
-    },
-  })
-
-  assert.equal(metadata.verification.status, 'verified')
-  assert.deepEqual(validatePayloadMetadata(metadata), [])
-})
-
-test('records only end-to-end Docker cases as runtime verified', () => {
-  const catalog = buildPayloadCatalog([
-    {
-      payloads: LINUX_PAYLOADS,
-      os: 'Linux',
-      mode: 'reverse',
-      overrides: getPayloadMetadataOverrides('Linux', 'reverse'),
-    },
-    {
-      payloads: BIND_LINUX_PAYLOADS,
-      os: 'Linux',
-      mode: 'bind',
-      overrides: getPayloadMetadataOverrides('Linux', 'bind'),
-    },
-  ])
-  const verified = catalog.filter(payload => payload.verification.status === 'verified')
-  const expectedCount = VERIFIED_LINUX_RUNTIME_PAYLOADS.reverse.length
-    + VERIFIED_LINUX_RUNTIME_PAYLOADS.bind.length
-
-  assert.equal(verified.length, expectedCount)
-  assert.ok(verified.every(payload => payload.verification.lastVerified === '2026-08-18'))
-  assert.ok(verified.every(payload => payload.verification.testedOn.length > 0))
-  assert.equal(
-    catalog.find(payload => payload.name === 'C')?.verification.status,
-    'experimental',
-  )
 })
 
 test('offers at least one selectable capability for every catalog requirement', () => {
@@ -490,16 +433,13 @@ test('advisor transport and category filters only return matching payloads', () 
   assert.ok(results.every(result => result.payload.category === 'Bash'))
 })
 
-test('advisor hides experimental payloads by default and can include them explicitly', () => {
+test('advisor includes every payload that matches the selected filters', () => {
   const catalog = buildPayloadCatalog([
     { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
   ])
-  const recommended = rankPayloads(catalog)
-  const all = rankPayloads(catalog, { maturity: 'all' })
+  const results = rankPayloads(catalog)
 
-  assert.ok(recommended.every(result => result.payload.verification.status !== 'experimental'))
-  assert.ok(all.some(result => result.payload.verification.status === 'experimental'))
-  assert.ok(all.length > recommended.length)
+  assert.equal(results.length, catalog.length)
 })
 
 test('builds guided reverse payload explanations with placeholders and stabilization', () => {
@@ -515,8 +455,6 @@ test('builds guided reverse payload explanations with placeholders and stabiliza
 
   assert.deepEqual(extractPayloadPlaceholders(metadata.template), ['ip', 'port'])
   assert.match(explanation.direction, /outbound connection/)
-  assert.equal(explanation.verification.status, 'conditional')
-  assert.match(explanation.verification.basis, /runtime behavior depends/)
   assert.equal(explanation.workflow[0].command, 'nc -lvnp 4444')
   assert.equal(explanation.stabilization.length, 2)
   assert.match(explanation.troubleshooting, /\/dev\/tcp/)
@@ -538,7 +476,7 @@ test('builds bind explanations with the connect command in the correct workflow 
   assert.deepEqual(explanation.stabilization, [])
 })
 
-test('marks external-resource and LOLBAS payloads experimental with explicit requirements', () => {
+test('records explicit requirements for external-resource and LOLBAS payloads', () => {
   const conPtyMetadata = buildPayloadMetadata({
     name: 'ConPtyShell',
     template: WINDOWS_PAYLOADS.ConPtyShell,
@@ -552,8 +490,6 @@ test('marks external-resource and LOLBAS payloads experimental with explicit req
     mode: 'reverse',
   })
 
-  assert.equal(conPtyMetadata.verification.status, 'experimental')
   assert.match(conPtyMetadata.warnings.join(' '), /Downloads a remote resource/)
-  assert.equal(msBuildMetadata.verification.status, 'experimental')
   assert.ok(msBuildMetadata.requiredBinaries.includes('msbuild.exe'))
 })

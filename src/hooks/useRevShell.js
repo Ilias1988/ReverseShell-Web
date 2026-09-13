@@ -3,7 +3,6 @@ import LINUX_PAYLOADS from '../data/payloadsLinux';
 import WINDOWS_PAYLOADS from '../data/payloadsWindows';
 import BIND_LINUX_PAYLOADS from '../data/payloadsBindLinux';
 import BIND_WINDOWS_PAYLOADS from '../data/payloadsBindWindows';
-import { getPayloadMetadataOverrides } from '../data/payloadMetadataOverrides';
 import { LINUX_SHELLS, WINDOWS_SHELLS, DEFAULT_SHELL } from '../data/shells';
 import { applyEncoding, injectPayloadValues } from '../utils/encoding';
 import {
@@ -64,7 +63,6 @@ export function useRevShell() {
       payloads: currentPayloads,
       os,
       mode,
-      overrides: getPayloadMetadataOverrides(os, mode),
     }]);
   }, [currentPayloads, mode, os]);
 

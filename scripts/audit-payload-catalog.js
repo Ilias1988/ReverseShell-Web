@@ -2,7 +2,6 @@ import LINUX_PAYLOADS from '../src/data/payloadsLinux.js'
 import WINDOWS_PAYLOADS from '../src/data/payloadsWindows.js'
 import BIND_LINUX_PAYLOADS from '../src/data/payloadsBindLinux.js'
 import BIND_WINDOWS_PAYLOADS from '../src/data/payloadsBindWindows.js'
-import { getPayloadMetadataOverrides } from '../src/data/payloadMetadataOverrides.js'
 import {
   buildPayloadCatalog,
   getSelectablePayloadNames,
@@ -15,10 +14,10 @@ import {
 import { injectPayloadValues } from '../src/utils/encoding.js'
 
 const SOURCES = [
-  { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse', overrides: getPayloadMetadataOverrides('Linux', 'reverse') },
-  { payloads: WINDOWS_PAYLOADS, os: 'Windows', mode: 'reverse', overrides: getPayloadMetadataOverrides('Windows', 'reverse') },
-  { payloads: BIND_LINUX_PAYLOADS, os: 'Linux', mode: 'bind', overrides: getPayloadMetadataOverrides('Linux', 'bind') },
-  { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind', overrides: getPayloadMetadataOverrides('Windows', 'bind') },
+  { payloads: LINUX_PAYLOADS, os: 'Linux', mode: 'reverse' },
+  { payloads: WINDOWS_PAYLOADS, os: 'Windows', mode: 'reverse' },
+  { payloads: BIND_LINUX_PAYLOADS, os: 'Linux', mode: 'bind' },
+  { payloads: BIND_WINDOWS_PAYLOADS, os: 'Windows', mode: 'bind' },
 ]
 
 function inspectTemplate(template) {
@@ -93,20 +92,12 @@ for (const os of ['Linux', 'Windows']) {
   }
 }
 
-const verificationCounts = Object.fromEntries(
-  ['verified', 'conditional', 'experimental', 'deprecated'].map(status => [
-    status,
-    catalog.filter(payload => payload.verification.status === status).length,
-  ]),
-)
-
 console.log('Payload catalog audit')
 console.log(`  Selectable entries: ${catalog.length}`)
 console.log(`  Linux reverse: ${catalog.filter(item => item.os === 'Linux' && item.mode === 'reverse').length}`)
 console.log(`  Windows reverse: ${catalog.filter(item => item.os === 'Windows' && item.mode === 'reverse').length}`)
 console.log(`  Linux bind: ${catalog.filter(item => item.os === 'Linux' && item.mode === 'bind').length}`)
 console.log(`  Windows bind: ${catalog.filter(item => item.os === 'Windows' && item.mode === 'bind').length}`)
-console.log(`  Verification: ${JSON.stringify(verificationCounts)}`)
 
 if (errors.length > 0) {
   console.error(`\nCatalog audit failed with ${errors.length} error(s):`)

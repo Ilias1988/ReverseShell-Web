@@ -112,21 +112,12 @@ export function rankPayloads(catalog, preferences = {}) {
     transport = 'any',
     category = 'Any',
     capabilities = [],
-    maturity = 'recommended',
   } = preferences
   const hasCapabilityProfile = capabilities.length > 0
 
   return catalog
     .filter(payload => transport === 'any' || payload.transport === transport)
     .filter(payload => category === 'Any' || payload.category === category)
-    .filter(payload => (
-      maturity === 'all'
-      || (maturity === 'verified' && payload.verification.status === 'verified')
-      || (
-        maturity === 'recommended'
-        && ['verified', 'conditional'].includes(payload.verification.status)
-      )
-    ))
     .map(payload => {
       const missingRequirements = hasCapabilityProfile
         ? payload.requiredBinaries.filter(
@@ -137,14 +128,6 @@ export function rankPayloads(catalog, preferences = {}) {
         `Matches ${payload.os} ${payload.mode} over ${payload.transport.toUpperCase()}.`,
       ]
       const cautions = [...payload.warnings]
-
-      if (payload.verification.status === 'experimental') {
-        cautions.unshift('Experimental catalog entry: runtime execution is not verified.')
-      } else if (payload.verification.status === 'conditional') {
-        cautions.push('Conditional catalog entry: verify the target runtime and implementation.')
-      } else if (payload.verification.status === 'deprecated') {
-        cautions.unshift('Deprecated catalog entry: retained only for reference.')
-      }
 
       if (hasCapabilityProfile && missingRequirements.length === 0) {
         reasons.push('All declared target requirements are available.')
@@ -169,7 +152,6 @@ export function rankPayloads(catalog, preferences = {}) {
           + (CATEGORY_PREFERENCE_SCORE[payload.category] || 0)
           - payload.requiredBinaries.length * 2
           - payload.warnings.length * 4
-          - (payload.verification.status === 'experimental' ? 20 : 0)
 
       return {
         payload,
